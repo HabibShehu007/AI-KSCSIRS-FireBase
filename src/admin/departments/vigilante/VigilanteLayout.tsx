@@ -1,6 +1,8 @@
+// src/admin/departments/vigilante/VigilanteLayout.tsx
 import { useRef, useState, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import type { Complaint } from "./types";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { listenToComplaints } from "../../../users/message/firebaseListener"; // ✅ Firestore listener
 import {
   FiHome,
   FiSettings,
@@ -17,7 +19,7 @@ export default function VigilanteLayout() {
     return localStorage.getItem("vigilante-muted") === "true";
   });
   const [hasNewMessage, setHasNewMessage] = useState(false);
-  const [lastAlertedId, setLastAlertedId] = useState<number | null>(null);
+  const [lastAlertedId, setLastAlertedId] = useState<string | null>(null); // Firestore IDs are strings
   const navigate = useNavigate();
 
   const toggleMute = () => {
@@ -27,36 +29,45 @@ export default function VigilanteLayout() {
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const stored = localStorage.getItem("complaints-vigilante");
-      const list: Complaint[] = stored ? JSON.parse(stored) : [];
+    // ✅ Subscribe to Firestore complaints for Vigilante department
+    const unsubscribe = listenToComplaints(
+      "vigilante",
+      (complaints: Complaint[]) => {
+        const pending = complaints
+          .filter((c) => c.status === "Pending")
+          .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
 
-      const pending = list
-        .filter((c) => c.status === "Pending")
-        .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+        const latest = pending[0];
+        const isNew = latest && latest.id !== lastAlertedId;
 
-      const latest = pending[0];
-      const isNew = latest && latest.id !== lastAlertedId;
+        setHasNewMessage(pending.length > 0);
 
-      setHasNewMessage(pending.length > 0);
+        if (isNew && !isMuted && audioRef.current) {
+          audioRef.current.play();
+          setLastAlertedId(latest.id);
+        }
 
-      if (isNew && !isMuted && audioRef.current) {
-        audioRef.current.play();
-        setLastAlertedId(latest.id);
+        // Cache complaints locally if needed
+        localStorage.setItem(
+          "complaints-vigilante",
+          JSON.stringify(complaints)
+        );
       }
-    }, 10000);
+    );
 
-    return () => clearInterval(interval);
+    return () => unsubscribe();
   }, [isMuted, lastAlertedId]);
 
   const handleEngage = () => {
     setHasNewMessage(false);
     setLastAlertedId(null);
+
     const stored = localStorage.getItem("complaints-vigilante");
     const list: Complaint[] = stored ? JSON.parse(stored) : [];
     const pending = list
       .filter((c) => c.status === "Pending")
       .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+
     if (pending.length > 0) {
       navigate(`/admin/vigilante/complaint/${pending[0].id}`);
     } else {

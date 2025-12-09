@@ -1,3 +1,4 @@
+// src/admin/departments/civildefence/CivilDefenceAnalytics.tsx
 import { useEffect, useState } from "react";
 import {
   PieChart,
@@ -12,17 +13,23 @@ import {
   LineChart,
   Line,
 } from "recharts";
-import type { Complaint } from "./types";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { listenToComplaints } from "../../../users/message/firebaseListener"; // ✅ Firestore listener
 
-const COLORS = ["#0088FE", "#FF8042"];
+const COLORS = ["#0088FE", "#FF8042", "#00C49F"];
 
 export default function CivilDefenceAnalytics() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
 
+  // ✅ Subscribe to Firestore complaints for Civil Defence department
   useEffect(() => {
-    const stored = localStorage.getItem("complaints-civildefence");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    setComplaints(list);
+    const unsubscribe = listenToComplaints(
+      "civildefence",
+      (incoming: Complaint[]) => {
+        setComplaints(incoming);
+      }
+    );
+    return () => unsubscribe();
   }, []);
 
   // Pie chart: status distribution
@@ -35,9 +42,13 @@ export default function CivilDefenceAnalytics() {
       name: "Pending",
       value: complaints.filter((c) => c.status === "Pending").length,
     },
+    {
+      name: "Investigating",
+      value: complaints.filter((c) => c.status === "Investigating").length,
+    },
   ];
 
-  // Bar chart: offense type counts
+  // Bar chart: offense type counts (group by subject)
   const offenseMap: Record<string, number> = {};
   complaints.forEach((c) => {
     offenseMap[c.subject] = (offenseMap[c.subject] || 0) + 1;
@@ -50,7 +61,7 @@ export default function CivilDefenceAnalytics() {
   // Line chart: complaints per day
   const dateMap: Record<string, number> = {};
   complaints.forEach((c) => {
-    const date = new Date(c.timestamp).toLocaleDateString();
+    const date = new Date(Number(c.timestamp)).toLocaleDateString();
     dateMap[date] = (dateMap[date] || 0) + 1;
   });
   const dateData = Object.entries(dateMap).map(([date, count]) => ({

@@ -1,6 +1,7 @@
+// src/admin/departments/police/PoliceComplaintDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import type { Complaint } from "./types";
+import type { Complaint } from "../../../users/message/firebaseStorage";
 import {
   FiUser,
   FiMail,
@@ -13,6 +14,8 @@ import {
   FiMessageSquare,
   FiAlertCircle,
 } from "react-icons/fi";
+import { db } from "../../../firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function PoliceComplaintDetails() {
   const { id } = useParams();
@@ -21,52 +24,59 @@ export default function PoliceComplaintDetails() {
   const [reply, setReply] = useState("");
   const [isResolved, setIsResolved] = useState(false);
 
+  // ✅ Fetch complaint
   useEffect(() => {
-    const stored = localStorage.getItem("complaints-police");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    const found = list.find((c) => c.id === Number(id));
-    setComplaint(found || null);
+    if (!id) return;
+    const fetchComplaint = async () => {
+      const ref = doc(db, "complaints", id);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setComplaint({ ...(snap.data() as Complaint), id: snap.id });
+      } else {
+        setComplaint(null);
+      }
+    };
+    fetchComplaint();
   }, [id]);
 
-  const updateComplaint = (updates: Partial<Complaint>) => {
-    if (!complaint) return;
-    const updated: Complaint = { ...complaint, ...updates };
-    const stored = localStorage.getItem("complaints-police");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    const newList = list.map((c) => (c.id === updated.id ? updated : c));
-    localStorage.setItem("complaints-police", JSON.stringify(newList));
-    setComplaint(updated);
+  // ✅ Update complaint
+  const updateComplaint = async (updates: Partial<Complaint>) => {
+    if (!complaint || !id) return;
+    const ref = doc(db, "complaints", id);
+    await updateDoc(ref, updates);
+    setComplaint({ ...complaint, ...updates });
   };
 
-  const handleReply = () => {
-    updateComplaint({ reply, status: "Resolved" });
+  const handleReply = async () => {
+    await updateComplaint({ reply, status: "Resolved" });
     setIsResolved(true);
     setTimeout(() => navigate("/admin/police/inbox"), 1500);
   };
 
-  const handleStatusChange = (status: Complaint["status"]) => {
-    updateComplaint({ status });
+  const handleStatusChange = async (status: Complaint["status"]) => {
+    await updateComplaint({ status });
   };
 
   if (!complaint) {
     return (
-      <div className="text-gray-600 text-center py-12 text-lg font-semibold">
-        Complaint not found.
+      <div className="flex flex-col items-center justify-center py-12 text-gray-600">
+        <FiAlertCircle className="text-5xl text-red-500 mb-4" />
+        <p className="text-lg font-semibold">Complaint not found.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      {/* Page Title */}
+      {/* Title */}
       <h2 className="text-4xl font-extrabold text-[#0a1f44] tracking-tight flex items-center gap-3">
         <FiAlertCircle className="text-red-600 text-3xl animate-bounce" />
-        Police Complaint Details
+        Complaint Details
       </h2>
 
-      {/* Two-column layout */}
+      {/* Layout */}
       <div className="bg-white p-8 rounded-2xl shadow-xl grid md:grid-cols-2 gap-8">
-        {/* Left Side: Message */}
+        {/* Left: Message + Reply */}
         <div className="space-y-6">
           <h3 className="text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
             <FiMessageSquare className="text-blue-600" /> Message
@@ -75,12 +85,12 @@ export default function PoliceComplaintDetails() {
             {complaint.message}
           </p>
 
-          <div>
+          <p className="text-sm text-gray-600">
             <span className="font-bold">Subject:</span>{" "}
-            <span className="font-semibold">{complaint.subject}</span>
-          </div>
+            {complaint.subject || "No subject"}
+          </p>
 
-          {/* Reply Box */}
+          {/* Reply */}
           <div className="mt-6">
             <label className="font-bold mb-2 text-[#0a1f44] text-lg flex items-center gap-2">
               <FiMessageSquare /> Reply
@@ -92,56 +102,51 @@ export default function PoliceComplaintDetails() {
               className="w-full border rounded-lg p-3 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Type your response here..."
             />
+            <button
+              onClick={handleReply}
+              className="bg-blue-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-800 transition transform hover:scale-105 mt-4 shadow-md flex items-center gap-2"
+            >
+              <FiCheckCircle /> Send Reply & Resolve
+            </button>
+            {isResolved && (
+              <p className="text-green-600 font-bold mt-4 animate-pulse text-lg">
+                Complaint marked as resolved. Redirecting...
+              </p>
+            )}
           </div>
-
-          <button
-            onClick={handleReply}
-            className="bg-blue-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-800 transition transform hover:scale-105 mt-4 shadow-md"
-          >
-            Send Reply & Mark as Resolved
-          </button>
-
-          {isResolved && (
-            <p className="text-green-600 font-bold mt-4 animate-pulse text-lg">
-              Complaint marked as resolved. Redirecting to inbox...
-            </p>
-          )}
         </div>
-
-        {/* Right Side: Info */}
+        {/* Right: Info */}
         <div className="space-y-6 text-gray-800 text-lg">
           <h3 className="text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
             <FiFileText className="text-blue-600" /> Complaint Info
           </h3>
 
           <p className="flex items-center gap-2">
-            <FiUser className="text-blue-700 text-xl" />
-            <span className="font-bold">User:</span>{" "}
-            <span className="font-semibold">{complaint.user}</span> (
+            <FiUser className="text-blue-700" />{" "}
+            <span className="font-bold">User:</span> {complaint.user} (
             {complaint.phone})
           </p>
           <p className="flex items-center gap-2">
-            <FiMail className="text-yellow-600 text-xl" />
-            <span className="font-bold">Email:</span>{" "}
-            <span className="font-semibold">{complaint.email}</span>
+            <FiMail className="text-yellow-600" />{" "}
+            <span className="font-bold">Email:</span> {complaint.email}
           </p>
           <p className="flex items-center gap-2">
-            <FiMapPin className="text-red-600 text-xl" />
-            <span className="font-bold">Address:</span>{" "}
-            <span className="font-semibold">{complaint.address}</span>
+            <FiMapPin className="text-red-600" />{" "}
+            <span className="font-bold">Address:</span> {complaint.address}
           </p>
           <p className="flex items-center gap-2">
-            <FiClock className="text-gray-600 text-xl" />
+            <FiClock className="text-gray-600" />{" "}
             <span className="font-bold">Received:</span>{" "}
-            <span className="font-semibold">
-              {new Date(complaint.timestamp).toLocaleString()}
-            </span>
+            {complaint.timestamp
+              ? new Date(Number(complaint.timestamp)).toLocaleString()
+              : "N/A"}
           </p>
 
-          <p>
-            <span className="font-bold">Status:</span>{" "}
+          {/* Status */}
+          <p className="flex items-center gap-2">
+            <span className="font-bold">Status:</span>
             <span
-              className={`px-3 py-1 rounded-full text-white text-sm font-bold uppercase tracking-wide ${
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-white text-sm font-bold uppercase tracking-wide ${
                 complaint.status === "Resolved"
                   ? "bg-green-600 animate-pulse"
                   : complaint.status === "Investigating"
@@ -149,6 +154,9 @@ export default function PoliceComplaintDetails() {
                   : "bg-yellow-500"
               }`}
             >
+              {complaint.status === "Resolved" && <FiCheckCircle />}
+              {complaint.status === "Investigating" && <FiSearch />}
+              {complaint.status === "Pending" && <FiAlertCircle />}
               {complaint.status}
             </span>
           </p>
@@ -157,7 +165,7 @@ export default function PoliceComplaintDetails() {
           {complaint.voiceNote && (
             <div>
               <span className="font-bold flex items-center gap-2 text-[#0a1f44]">
-                <FiMic /> Voice Note:
+                <FiMic /> Voice Note
               </span>
               <audio
                 controls
@@ -168,14 +176,23 @@ export default function PoliceComplaintDetails() {
           )}
 
           {/* Files */}
-          {complaint.files.length > 0 && (
+          {complaint.files && complaint.files.length > 0 && (
             <div>
               <span className="font-bold flex items-center gap-2 text-[#0a1f44]">
-                <FiFileText /> Files:
+                <FiFileText /> Files
               </span>
               <ul className="list-disc ml-6 text-blue-700 font-semibold">
                 {complaint.files.map((f, i) => (
-                  <li key={i}>{f}</li>
+                  <li key={i}>
+                    <a
+                      href={f}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline"
+                    >
+                      {f}
+                    </a>
+                  </li>
                 ))}
               </ul>
             </div>
@@ -187,19 +204,19 @@ export default function PoliceComplaintDetails() {
               onClick={() => handleStatusChange("Pending")}
               className="flex items-center gap-2 px-5 py-2 bg-yellow-500 text-white rounded-lg font-bold hover:bg-yellow-600 transition transform hover:scale-105"
             >
-              <FiClock className="text-lg" /> Pending
+              <FiClock /> Pending
             </button>
             <button
               onClick={() => handleStatusChange("Investigating")}
               className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition transform hover:scale-105"
             >
-              <FiSearch className="text-lg" /> Investigating
+              <FiSearch /> Investigating
             </button>
             <button
               onClick={() => handleStatusChange("Resolved")}
               className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition transform hover:scale-105"
             >
-              <FiCheckCircle className="text-lg" /> Resolved
+              <FiCheckCircle /> Resolved
             </button>
           </div>
         </div>

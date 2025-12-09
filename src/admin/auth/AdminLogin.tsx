@@ -1,26 +1,13 @@
+// src/admin/auth/AdminLogin.tsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
 import logo from "../../assets/logo.png";
 import CentralLoginForm from "./central/CentralLoginForm";
 import DepartmentLoginForm from "./departmental/DepartmentLoginForm";
 
-// Define payload types
-type CentralPayload = {
-  email: string;
-  password: string;
-  role: "central";
-};
-
-type DepartmentPayload = {
-  departmentEmail: string;
-  email: string; // staffEmail mapped to "email" for backend
-  password: string;
-  role: "department";
-  department: string;
-};
-
-type LoginPayload = CentralPayload | DepartmentPayload;
+// Firestore imports
+import { db } from "../../firebase";
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function AdminLogin() {
   const [activeTab, setActiveTab] = useState<"central" | "department">(
@@ -43,61 +30,70 @@ export default function AdminLogin() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage("");
 
     try {
-      let payload: LoginPayload;
-
       if (activeTab === "central") {
-        payload = { email, password, role: "central" };
+        // ✅ Query Firestore for central admin
+        const q = query(
+          collection(db, "central_admins"),
+          where("email", "==", email),
+          where("password", "==", password)
+        );
+        const snapshot = await getDocs(q);
+
+        if (!snapshot.empty) {
+          localStorage.setItem("adminRole", "central");
+          setShowModal(true);
+          setTimeout(() => navigate("/admin/central/dashboard"), 2000);
+        } else {
+          setErrorMessage("❌ Central admin record not found");
+          setShowErrorModal(true);
+        }
       } else {
+        // ✅ Department admin login
         if (!department || !departmentEmail || !staffEmail) {
           setErrorMessage("Please fill all department fields");
           setShowErrorModal(true);
           return;
         }
 
-        payload = {
-          departmentEmail,
-          email: staffEmail, // backend expects "email" but it's staff_email
-          password,
-          role: "department",
-          department,
-        };
-      }
+        const q = query(
+          collection(db, "department_admins"),
+          where("departmentEmail", "==", departmentEmail),
+          where("staffEmail", "==", staffEmail),
+          where("password", "==", password),
+          where("department", "==", department)
+        );
+        const snapshot = await getDocs(q);
 
-      const res = await axios.post(
-        "http://localhost:3000/admin/login",
-        payload
-      );
+        if (!snapshot.empty) {
+          localStorage.setItem("adminRole", "department");
+          localStorage.setItem("adminDepartment", department);
 
-      localStorage.setItem("adminToken", res.data.token);
-      localStorage.setItem("adminRole", activeTab);
+          const routeMap: Record<string, string> = {
+            police: "/admin/police",
+            dss: "/admin/dss",
+            civildefence: "/admin/civil-defence",
+            vigilante: "/admin/vigilante",
+          };
 
-      if (activeTab === "department") {
-        localStorage.setItem("adminDepartment", department);
-
-        // Map department to route
-        const routeMap: Record<string, string> = {
-          police: "/admin/police",
-          dss: "/admin/dss",
-          civildefence: "/admin/civil-defence",
-          vigilante: "/admin/vigilante", // 🆕 Community Watch activated
-        };
-
-        const targetRoute = routeMap[department.toLowerCase()];
-        if (targetRoute) {
-          setShowModal(true);
-          setTimeout(() => navigate(targetRoute), 2000);
+          const targetRoute = routeMap[department.toLowerCase()] || "";
+          if (targetRoute) {
+            setShowModal(true);
+            setTimeout(() => navigate(targetRoute), 2000);
+          } else {
+            setErrorMessage("Unknown department selected");
+            setShowErrorModal(true);
+          }
         } else {
-          setErrorMessage("Unknown department selected");
+          setErrorMessage("❌ Department admin record not found");
           setShowErrorModal(true);
         }
-      } else {
-        setShowModal(true);
-        setTimeout(() => navigate("/admin/central"), 2000);
       }
-    } catch {
-      setErrorMessage("Invalid credentials or server error");
+    } catch (err) {
+      console.error("❌ Login error:", err);
+      setErrorMessage("⚠️ Something went wrong. Try again.");
       setShowErrorModal(true);
     }
   };

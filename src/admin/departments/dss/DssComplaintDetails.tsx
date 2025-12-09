@@ -1,6 +1,9 @@
+// src/admin/departments/dss/DssComplaintDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import type { Complaint } from "./types";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { db } from "../../../firebase"; // ✅ your Firebase config
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   FiUser,
   FiMail,
@@ -15,37 +18,43 @@ import {
 } from "react-icons/fi";
 
 export default function DssComplaintDetails() {
-  const { id } = useParams();
+  const { id } = useParams(); // Firestore doc ID is a string
   const navigate = useNavigate();
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [reply, setReply] = useState("");
   const [isResolved, setIsResolved] = useState(false);
 
+  // ✅ Fetch complaint from Firestore
   useEffect(() => {
-    const stored = localStorage.getItem("complaints-dss");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    const found = list.find((c) => c.id === Number(id));
-    setComplaint(found || null);
+    if (!id) return;
+    const fetchComplaint = async () => {
+      const ref = doc(db, "complaints", id);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        setComplaint({ ...(snap.data() as Complaint), id: snap.id });
+      } else {
+        setComplaint(null);
+      }
+    };
+    fetchComplaint();
   }, [id]);
 
-  const updateComplaint = (updates: Partial<Complaint>) => {
-    if (!complaint) return;
-    const updated: Complaint = { ...complaint, ...updates };
-    const stored = localStorage.getItem("complaints-dss");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    const newList = list.map((c) => (c.id === updated.id ? updated : c));
-    localStorage.setItem("complaints-dss", JSON.stringify(newList));
-    setComplaint(updated);
+  // ✅ Update complaint in Firestore
+  const updateComplaint = async (updates: Partial<Complaint>) => {
+    if (!complaint || !id) return;
+    const ref = doc(db, "complaints", id);
+    await updateDoc(ref, updates);
+    setComplaint({ ...complaint, ...updates });
   };
 
-  const handleReply = () => {
-    updateComplaint({ reply, status: "Resolved" });
+  const handleReply = async () => {
+    await updateComplaint({ reply, status: "Resolved" });
     setIsResolved(true);
     setTimeout(() => navigate("/admin/dss/inbox"), 1500);
   };
 
-  const handleStatusChange = (status: Complaint["status"]) => {
-    updateComplaint({ status });
+  const handleStatusChange = async (status: Complaint["status"]) => {
+    await updateComplaint({ status });
   };
 
   if (!complaint) {
@@ -134,7 +143,7 @@ export default function DssComplaintDetails() {
             <FiClock className="text-gray-600 text-xl" />
             <span className="font-bold">Received:</span>{" "}
             <span className="font-semibold">
-              {new Date(complaint.timestamp).toLocaleString()}
+              {new Date(Number(complaint.timestamp)).toLocaleString()}
             </span>
           </p>
 
@@ -168,7 +177,7 @@ export default function DssComplaintDetails() {
           )}
 
           {/* Files */}
-          {complaint.files.length > 0 && (
+          {complaint.files && complaint.files.length > 0 && (
             <div>
               <span className="font-bold flex items-center gap-2 text-[#0a1f44]">
                 <FiFileText /> Files:

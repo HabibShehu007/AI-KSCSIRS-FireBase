@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import AgencyCard from "./AgencyCard";
 import { departments } from "./agencies"; // ✅ Centralized source
-import API from "../../api";
+
+// Firebase imports
+import { db } from "../../firebase";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function UserDashboard() {
   const [userName, setUserName] = useState("");
@@ -9,15 +12,21 @@ export default function UserDashboard() {
   useEffect(() => {
     const userId = sessionStorage.getItem("userId");
     if (userId) {
-      API.get(`/dashboard/${userId}`)
-        .then((res) => {
-          console.log("✅ Dashboard response:", res.data);
-          setUserName(res.data.name);
-        })
-        .catch((err) => {
+      const fetchUser = async () => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", userId));
+          if (userDoc.exists()) {
+            const data = userDoc.data();
+            setUserName(data.name || "User");
+          } else {
+            setUserName("User");
+          }
+        } catch (err) {
           console.error("❌ Failed to fetch user name:", err);
           setUserName("User");
-        });
+        }
+      };
+      fetchUser();
     }
   }, []);
 

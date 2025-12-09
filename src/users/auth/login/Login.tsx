@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { io } from "socket.io-client";
-import axios from "axios";
-import API from "../../../api";
 import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
+
+// Firebase imports
+import { auth } from "../../../firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 type LogPayload = {
   email: string;
@@ -24,14 +25,6 @@ export default function Login() {
     message: string;
   } | null>(null);
 
-  const socket = io("http://localhost:3000");
-
-  useEffect(() => {
-    return () => {
-      socket.disconnect();
-    };
-  }, [socket]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setForm({ ...form, [name]: value });
@@ -49,29 +42,21 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const res = await API.post("/auth/login", {
-        email: form.email,
-        password: form.password,
-      });
+      // ✅ Firebase login
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        form.email,
+        form.password
+      );
+      const user = userCredential.user;
 
-      const { token, user } = res.data;
-      const { id, name, phone, email } = user;
+      // ✅ Store UID for dashboard greeting
+      sessionStorage.setItem("userId", user.uid);
 
-      // ✅ Save token to localStorage
-      localStorage.setItem("token", token); // 🔥 THIS LINE FIXES EVERYTHING
+      // ✅ Optional: store user email
+      localStorage.setItem("userInfo", JSON.stringify({ email: user.email }));
 
-      // ✅ Store userId for dashboard greeting
-      sessionStorage.setItem("userId", id.toString());
-
-      // ✅ Optional: still store other info if needed
-      localStorage.setItem("userInfo", JSON.stringify({ name, phone, email }));
-
-      logToAdmin("login", { email });
-
-      socket.emit("alert", {
-        type: "login",
-        user: { email },
-      });
+      logToAdmin("login", { email: form.email });
 
       setModal({
         type: "success",
@@ -83,15 +68,13 @@ export default function Login() {
         navigate("/user/dashboard");
       }, 2000);
     } catch (err: unknown) {
-      if (axios.isAxiosError(err)) {
-        setModal({
-          type: "error",
-          message:
-            err.response?.data?.error || "Login failed. Please try again.",
-        });
-      } else {
-        setModal({ type: "error", message: "Unexpected error occurred." });
-      }
+      const errorMessage =
+        err instanceof Error ? err.message : "Login failed. Please try again.";
+
+      setModal({
+        type: "error",
+        message: errorMessage,
+      });
     }
   };
 

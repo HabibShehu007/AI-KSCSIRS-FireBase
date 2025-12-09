@@ -1,8 +1,9 @@
 // src/admin/auth/central/CentralLogin.tsx
 import { useState } from "react";
 import CentralLoginForm from "./CentralLoginForm";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { db } from "../../../firebase"; // ✅ your Firebase config
+import { collection, query, where, getDocs } from "firebase/firestore";
 
 export default function CentralLogin() {
   const [email, setEmail] = useState("");
@@ -15,28 +16,29 @@ export default function CentralLogin() {
     setError("");
 
     try {
-      const res = await axios.post("/admin/login", {
-        email,
-        password,
-        role: "central", // ✅ distinguish central admin
-      });
+      // ✅ Query Firestore for central admin
+      const q = query(
+        collection(db, "central_admins"),
+        where("email", "==", email),
+        where("password", "==", password)
+      );
 
-      // Save token or session
-      localStorage.setItem("adminToken", res.data.token);
+      const snapshot = await getDocs(q);
 
-      // Redirect to central dashboard
-      navigate("/admin/central/dashboard");
-    } catch (err: unknown) {
-      console.error("❌ Login failed:", err);
-      if (axios.isAxiosError(err)) {
-        setError(
-          err.response?.data?.message ?? "Invalid credentials or server error"
-        );
-      } else if (err instanceof Error) {
-        setError(err.message);
+      if (!snapshot.empty) {
+        console.log("✅ Central Admin found:", snapshot.docs[0].data());
+
+        // Save session marker (no token since we’re not using Auth)
+        localStorage.setItem("adminSession", "central");
+
+        // Redirect to central dashboard
+        navigate("/admin/central/dashboard");
       } else {
-        setError("Invalid credentials or server error");
+        setError("❌ Record not found. Please check your credentials.");
       }
+    } catch (err) {
+      console.error("Login error:", err);
+      setError("⚠️ Something went wrong. Try again.");
     }
   };
 

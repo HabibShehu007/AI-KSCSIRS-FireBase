@@ -1,38 +1,51 @@
 // src/admin/departments/police/NewMessageOverlay.tsx
-import { FiAlertCircle } from "react-icons/fi";
+import { FiAlertCircle, FiX } from "react-icons/fi";
+
+type Props = {
+  onEngage: () => void;
+  onDismiss?: () => void;
+  title?: string;
+  description?: string;
+};
 
 export default function NewMessageOverlay({
   onEngage,
-}: {
-  onEngage: () => void;
-}) {
-  console.log("🚨 NewMessageOverlay rendered"); // Debug log
+  onDismiss,
+  title = "New Message Received",
+  description = "Click engage to view the message",
+}: Props) {
+  console.log("🚨 NewMessageOverlay rendered");
 
   return (
     <div
-      className="absolute inset-0 bg-red-700 bg-opacity-90 flex items-center justify-center z-50"
+      className="absolute inset-0 bg-red-700 bg-opacity-90 flex items-center justify-center z-50 animate-fadeIn"
       role="alert"
       aria-live="assertive"
     >
-      <div className="text-center text-white">
-        {/* Icon with bounce animation */}
+      <div className="text-center text-white relative">
+        {/* Close button */}
+        {onDismiss && (
+          <button
+            onClick={onDismiss}
+            aria-label="Dismiss alert"
+            className="absolute top-2 right-2 text-white hover:text-gray-200"
+          >
+            <FiX className="text-2xl" />
+          </button>
+        )}
+
+        {/* Icon */}
         <FiAlertCircle className="mx-auto text-6xl mb-4 animate-bounce" />
 
-        {/* Title with pulse effect */}
-        <h2 className="text-3xl font-extrabold mb-2 animate-pulse">
-          New Message Received
-        </h2>
+        {/* Title */}
+        <h2 className="text-3xl font-extrabold mb-2 animate-pulse">{title}</h2>
 
-        <p className="mb-6 text-lg font-medium">
-          Click engage to view the message
-        </p>
+        {/* Description */}
+        <p className="mb-6 text-lg font-medium">{description}</p>
 
-        {/* Engage button with hover scale */}
+        {/* Engage button */}
         <button
-          onClick={() => {
-            console.log("👆 Engage button clicked"); // Debug log
-            onEngage();
-          }}
+          onClick={onEngage}
           className="px-6 py-2 bg-white text-red-700 font-semibold rounded shadow-lg hover:bg-gray-200 transform hover:scale-105 transition duration-300"
         >
           Engage

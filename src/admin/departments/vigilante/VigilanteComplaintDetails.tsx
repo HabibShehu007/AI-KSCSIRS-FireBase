@@ -1,24 +1,45 @@
+// src/admin/departments/vigilante/VigilanteComplaintDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import type { Complaint } from "./types";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { db } from "../../../firebase"; // ✅ your Firebase config
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 export default function VigilanteComplaintDetails() {
-  const { id } = useParams();
+  const { id } = useParams(); // Firestore doc ID is a string
   const navigate = useNavigate();
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [reply, setReply] = useState("");
   const [isResolved, setIsResolved] = useState(false);
 
+  // ✅ Fetch complaint from Firestore
   useEffect(() => {
-    console.log("🔍 Loading complaint with ID:", id);
-    const stored = localStorage.getItem("complaints-vigilante");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    const found = list.find((c) => c.id === Number(id));
-    console.log("📦 Found complaint:", found);
-    setComplaint(found || null);
+    if (!id) return;
+    const fetchComplaint = async () => {
+      console.log("🔍 Loading complaint with ID:", id);
+      const ref = doc(db, "complaints", id);
+      const snap = await getDoc(ref);
+      if (snap.exists()) {
+        const data = snap.data() as Complaint;
+        setComplaint({ ...data, id: snap.id });
+        console.log("📦 Found complaint:", data);
+      } else {
+        setComplaint(null);
+        console.log("❌ Complaint not found for ID:", id);
+      }
+    };
+    fetchComplaint();
   }, [id]);
 
-  const handleReply = () => {
+  // ✅ Update complaint in Firestore
+  const updateComplaint = async (updates: Partial<Complaint>) => {
+    if (!complaint || !id) return;
+    const ref = doc(db, "complaints", id);
+    await updateDoc(ref, updates);
+    setComplaint({ ...complaint, ...updates });
+  };
+
+  const handleReply = async () => {
     if (!complaint) return;
 
     const updated: Complaint = {
@@ -29,10 +50,7 @@ export default function VigilanteComplaintDetails() {
 
     console.log("✍️ Updating complaint with reply:", updated);
 
-    const stored = localStorage.getItem("complaints-vigilante");
-    const list = stored ? (JSON.parse(stored) as Complaint[]) : [];
-    const newList = list.map((c) => (c.id === updated.id ? updated : c));
-    localStorage.setItem("complaints-vigilante", JSON.stringify(newList));
+    await updateComplaint({ reply, status: "Resolved" });
 
     setIsResolved(true);
     console.log("✅ Complaint marked as resolved");
@@ -44,7 +62,6 @@ export default function VigilanteComplaintDetails() {
   };
 
   if (!complaint) {
-    console.log("❌ Complaint not found for ID:", id);
     return <div className="text-gray-600">Complaint not found.</div>;
   }
 
@@ -74,6 +91,8 @@ export default function VigilanteComplaintDetails() {
               className={`px-2 py-1 rounded text-white text-sm ${
                 complaint.status === "Resolved"
                   ? "bg-green-600"
+                  : complaint.status === "Investigating"
+                  ? "bg-blue-600"
                   : "bg-yellow-500"
               }`}
             >
@@ -82,7 +101,7 @@ export default function VigilanteComplaintDetails() {
           </p>
           <p>
             <strong>Timestamp:</strong>{" "}
-            {new Date(complaint.timestamp).toLocaleString()}
+            {new Date(Number(complaint.timestamp)).toLocaleString()}
           </p>
         </div>
 
@@ -93,7 +112,7 @@ export default function VigilanteComplaintDetails() {
           </div>
         )}
 
-        {complaint.files.length > 0 && (
+        {complaint.files && complaint.files.length > 0 && (
           <div>
             <strong>Files:</strong>
             <ul className="list-disc ml-6">

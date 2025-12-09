@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import API from "../../api";
 import {
   FiUser,
   FiMail,
@@ -9,6 +8,10 @@ import {
   FiEdit3,
   FiHome,
 } from "react-icons/fi";
+
+// Firebase imports
+import { auth, db } from "../../firebase";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 
 type UserInfo = {
   name: string;
@@ -32,20 +35,19 @@ export default function Profile() {
   const [editing, setEditing] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      API.get("/profile/me", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      })
-        .then((res) => {
-          console.log("✅ Profile response:", res.data);
-          setUserInfo(res.data);
-        })
-        .catch((err) => {
+    const userId = sessionStorage.getItem("userId") || auth.currentUser?.uid;
+    if (userId) {
+      const fetchUser = async () => {
+        try {
+          const userDoc = await getDoc(doc(db, "users", userId));
+          if (userDoc.exists()) {
+            setUserInfo(userDoc.data() as UserInfo);
+          }
+        } catch (err) {
           console.error("❌ Failed to fetch profile:", err);
-        });
+        }
+      };
+      fetchUser();
     }
   }, []);
 
@@ -54,8 +56,16 @@ export default function Profile() {
     setUserInfo((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    setEditing(false);
+  const handleSave = async () => {
+    try {
+      const userId = sessionStorage.getItem("userId") || auth.currentUser?.uid;
+      if (userId) {
+        await updateDoc(doc(db, "users", userId), userInfo);
+      }
+      setEditing(false);
+    } catch (err) {
+      console.error("❌ Failed to update profile:", err);
+    }
   };
 
   const getInitials = (name: string) =>

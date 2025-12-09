@@ -1,28 +1,34 @@
 // src/admin/departments/dss/DssComplaintInbox.tsx
-import type { Complaint } from "./types";
+import { useEffect, useState } from "react";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { listenToComplaints } from "../../../users/message/firebaseListener"; // ✅ Firestore listener
 import { Link } from "react-router-dom";
 
-type Props = {
-  complaints?: Complaint[];
-};
+export default function DssComplaintInbox() {
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
 
-export default function DssComplaintInbox({ complaints = [] }: Props) {
-  console.log("📨 ComplaintInbox received complaints:", complaints); // Debug log
+  useEffect(() => {
+    // ✅ Subscribe to Firestore complaints for DSS department
+    const unsubscribe = listenToComplaints("dss", (incoming: Complaint[]) => {
+      const sorted = [...incoming].sort(
+        (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
+      );
+      setComplaints(sorted);
+    });
 
-  const sorted = complaints.sort(
-    (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
-  );
+    return () => unsubscribe();
+  }, []);
 
-  console.log("📊 Sorted complaints:", sorted); // Debug log
+  console.log("📨 DSS ComplaintInbox received complaints:", complaints); // Debug log
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-      {sorted.length === 0 ? (
+      {complaints.length === 0 ? (
         <p className="text-gray-600 text-center py-8 text-lg font-semibold">
           No pending complaints at the moment.
         </p>
       ) : (
-        sorted.map((c) => (
+        complaints.map((c) => (
           <Link
             to={`/admin/dss/complaint/${c.id}`}
             key={c.id}
@@ -43,7 +49,7 @@ export default function DssComplaintInbox({ complaints = [] }: Props) {
                 </p>
                 <p className="text-xs text-gray-500">
                   {c.timestamp
-                    ? new Date(c.timestamp).toLocaleString()
+                    ? new Date(Number(c.timestamp)).toLocaleString()
                     : "No timestamp"}
                 </p>
               </div>

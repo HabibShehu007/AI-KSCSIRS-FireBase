@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import API from "../../api";
 import { departmentOffenses } from "./data";
 import Modal from "./Modal";
 import {
@@ -13,6 +12,11 @@ import {
   FiMapPin,
   FiAlertCircle,
 } from "react-icons/fi";
+
+// Firebase imports
+import { auth, db, storage } from "../../firebase";
+import { doc, getDoc, addDoc, collection } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 type Props = {
   department: string;
@@ -36,24 +40,27 @@ export default function ComplaintForm({ department }: Props) {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
-  // ✅ Fetch user info
+  // ✅ Fetch user info from Firestore
   useEffect(() => {
     const fetchUserInfo = async () => {
       try {
-        const token = localStorage.getItem("token");
-        if (!token) {
+        const userId =
+          sessionStorage.getItem("userId") || auth.currentUser?.uid;
+        if (!userId) {
           setUserLoading(false);
           return;
         }
-        const res = await API.get("/profile/me", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = res.data;
-        setUser(data.name || "");
-        setPhone(data.phone || "");
-        setEmail(data.email || "");
-      } catch {
-        console.error("Error loading user info");
+
+        const userDoc = await getDoc(doc(db, "users", userId));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUser(data.name || "");
+          setPhone(data.phone || "");
+          setEmail(data.email || "");
+          setAddress(data.address || "");
+        }
+      } catch (err) {
+        console.error("❌ Error loading user info:", err);
       } finally {
         setUserLoading(false);
       }
@@ -98,35 +105,51 @@ export default function ComplaintForm({ department }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // ✅ Require either description OR voice note
     if (!description.trim() && !audioURL) {
       alert("Please provide a description or record/upload a voice note.");
       return;
     }
 
     setLoading(true);
-    const token = localStorage.getItem("token");
 
-    await API.post(
-      "/complaints/submit",
-      {
+    try {
+      // ✅ Upload files to Firebase Storage
+      const fileURLs: string[] = [];
+      if (files) {
+        for (const file of Array.from(files)) {
+          const storageRef = ref(storage, `complaints/${file.name}`);
+          await uploadBytes(storageRef, file);
+          const url = await getDownloadURL(storageRef);
+          fileURLs.push(url);
+        }
+      }
+
+      // ✅ Save complaint to Firestore
+      await addDoc(collection(db, "complaints"), {
         subject: title,
         message: description,
         address,
         department,
-        files: files ? Array.from(files).map((f) => f.name) : [],
-        voiceNote: audioURL ?? undefined,
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+        files: fileURLs,
+        voiceNote: audioURL ?? null,
+        userName: user,
+        userPhone: phone,
+        userEmail: email,
+        createdAt: new Date().toISOString(),
+        status: "pending", // 👈 admins can filter by status
+      });
 
-    setShowModal(true);
-    setTitle("");
-    setDescription("");
-    setAddress("");
-    setFiles(null);
-    setAudioURL(null);
-    setLoading(false);
+      setShowModal(true);
+      setTitle("");
+      setDescription("");
+      setAddress("");
+      setFiles(null);
+      setAudioURL(null);
+    } catch (err) {
+      console.error("❌ Failed to submit complaint:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (userLoading) {
@@ -136,7 +159,6 @@ export default function ComplaintForm({ department }: Props) {
       </div>
     );
   }
-
   return (
     <>
       <form
@@ -188,8 +210,8 @@ export default function ComplaintForm({ department }: Props) {
             required
           >
             <option value="">Select Offense</option>
-            {offenses.map((offense) => (
-              <option key={offense} value={offense}>
+            {offenses.map((offense, idx) => (
+              <option key={idx} value={offense}>
                 {offense}
               </option>
             ))}
@@ -224,6 +246,7 @@ export default function ComplaintForm({ department }: Props) {
             required
           />
         </div>
+
         {/* Attachments */}
         <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm font-semibold text-gray-700">
@@ -233,7 +256,6 @@ export default function ComplaintForm({ department }: Props) {
             Add photos or documents to support your complaint.
           </p>
 
-          {/* Hidden file input */}
           <input
             id="file-upload"
             type="file"
@@ -242,7 +264,6 @@ export default function ComplaintForm({ department }: Props) {
             className="hidden"
           />
 
-          {/* Modern button to trigger file input */}
           <button
             type="button"
             onClick={() => document.getElementById("file-upload")?.click()}
@@ -251,7 +272,6 @@ export default function ComplaintForm({ department }: Props) {
             <FiPaperclip className="text-lg" /> Add Attachment
           </button>
 
-          {/* Show selected files */}
           {files && files.length > 0 && (
             <ul className="mt-2 text-xs text-gray-700 font-medium space-y-1">
               {Array.from(files).map((file, idx) => (

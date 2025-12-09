@@ -1,39 +1,44 @@
 import { useState, useEffect } from "react";
-import type { Complaint } from "./types";
-import { joinPoliceRoom } from "./socket";
-import { Link } from "react-router-dom";
+import type { Complaint } from "../../../users/message/firebaseStorage";
+import { joinPoliceRoom } from "./policeListener";
+import { Link, useNavigate } from "react-router-dom";
 import NewMessageOverlay from "./NewMessageOverlay";
 
 export default function PolicePortal() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
+  const [newestComplaint, setNewestComplaint] = useState<Complaint | null>(
+    null
+  );
   const [showOverlay, setShowOverlay] = useState(false);
-  const [lastOverlayId, setLastOverlayId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
+  // Load cached complaints
   useEffect(() => {
     const stored = localStorage.getItem("complaints-police");
     const list: Complaint[] = stored ? JSON.parse(stored) : [];
     setComplaints(list);
   }, []);
 
+  // Subscribe to Firestore complaints
   useEffect(() => {
-    const cleanup = joinPoliceRoom((incoming: Complaint) => {
-      setComplaints((prev) => {
-        const exists = prev.some((c) => c.id === incoming.id);
-        if (exists) return prev;
+    const unsubscribe = joinPoliceRoom((incoming, newest) => {
+      const updated = [...incoming].sort(
+        (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
+      );
 
-        const updated = [incoming, ...prev].sort(
-          (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
-        );
+      localStorage.setItem("complaints-police", JSON.stringify(updated));
+      setComplaints(updated);
 
-        localStorage.setItem("complaints-police", JSON.stringify(updated));
+      // Only trigger overlay if a truly new complaint arrived
+      const lastSeenId = localStorage.getItem("lastSeenComplaintId");
+      if (newest && newest.id !== lastSeenId) {
+        setNewestComplaint(newest);
         setShowOverlay(true);
-        setLastOverlayId(incoming.id);
-
-        return updated;
-      });
+        localStorage.setItem("lastSeenComplaintId", newest.id);
+      }
     });
 
-    return () => cleanup();
+    return () => unsubscribe();
   }, []);
 
   const resolved = complaints.filter((c) => c.status === "Resolved").length;
@@ -64,9 +69,7 @@ export default function PolicePortal() {
             {/* Pending */}
             <div className="bg-yellow-100 p-6 rounded-2xl shadow-lg text-yellow-800 hover:shadow-xl transition text-center">
               <h2 className="text-lg font-semibold mb-2">Pending</h2>
-              <p className="text-4xl font-extrabold">
-                {complaints.filter((c) => c.status === "Pending").length}
-              </p>
+              <p className="text-4xl font-extrabold">{pending}</p>
             </div>
 
             {/* Investigating */}
@@ -91,14 +94,7 @@ export default function PolicePortal() {
       {/* Complaint Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-6">
         {complaints.map((c) => (
-          <div
-            key={c.id}
-            className={`rounded-2xl shadow-lg p-5 transition transform hover:scale-[1.02] ${
-              c.status === "Resolved"
-                ? "bg-green-100 text-green-900 border border-green-300"
-                : "bg-white text-[#0a1f44] border border-gray-200"
-            }`}
-          >
+          <div key={c.id} className="rounded-2xl shadow-lg p-5">
             <h3 className="text-lg font-bold mb-1 truncate">
               {c.subject || "No Subject"}
             </h3>
@@ -118,13 +114,7 @@ export default function PolicePortal() {
               </p>
             </div>
             <div className="flex justify-between items-center">
-              <span
-                className={`text-xs font-semibold px-3 py-1 rounded-full ${
-                  c.status === "Resolved"
-                    ? "bg-green-200 text-green-800"
-                    : "bg-red-100 text-red-700"
-                }`}
-              >
+              <span className="text-xs font-semibold px-3 py-1 rounded-full">
                 {c.status}
               </span>
               <Link
@@ -139,10 +129,11 @@ export default function PolicePortal() {
       </div>
 
       {/* New Message Overlay */}
-      {showOverlay && lastOverlayId !== null && (
+      {showOverlay && newestComplaint && (
         <NewMessageOverlay
           onEngage={() => {
             setShowOverlay(false);
+            navigate(`/admin/police/complaint/${newestComplaint.id}`); // ✅ direct ID
           }}
         />
       )}

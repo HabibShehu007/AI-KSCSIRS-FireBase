@@ -1,27 +1,28 @@
+// src/admin/departments/civildefence/CivilDefencePortal.tsx
 import { useState, useEffect } from "react";
-import type { Complaint } from "./types";
-import { joinCivilDefenceRoom } from "./socket";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { listenToComplaints } from "../../../users/message/firebaseListener"; // ✅ Firestore listener
 import { Link } from "react-router-dom";
 import NewMessageOverlay from "./NewMessageOverlay";
 
 export default function CivilDefencePortal() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [showOverlay, setShowOverlay] = useState(false);
-  const [lastOverlayId, setLastOverlayId] = useState<number | null>(null);
+  const [lastOverlayId, setLastOverlayId] = useState<string | null>(null); // Firestore IDs are strings
 
+  // Load cached complaints from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("complaints-civildefence");
     const list: Complaint[] = stored ? JSON.parse(stored) : [];
     setComplaints(list);
   }, []);
 
+  // Subscribe to Firestore complaints for Civil Defence department
   useEffect(() => {
-    const cleanup = joinCivilDefenceRoom((incoming: Complaint) => {
-      setComplaints((prev) => {
-        const exists = prev.some((c) => c.id === incoming.id);
-        if (exists) return prev;
-
-        const updated = [incoming, ...prev].sort(
+    const unsubscribe = listenToComplaints(
+      "civildefence",
+      (incoming: Complaint[]) => {
+        const updated = [...incoming].sort(
           (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
         );
 
@@ -29,15 +30,22 @@ export default function CivilDefencePortal() {
           "complaints-civildefence",
           JSON.stringify(updated)
         );
-        setShowOverlay(true);
-        setLastOverlayId(incoming.id);
 
-        return updated;
-      });
-    });
+        // Show overlay if a new complaint arrived
+        if (
+          updated.length > 0 &&
+          (!lastOverlayId || updated[0].id !== lastOverlayId)
+        ) {
+          setShowOverlay(true);
+          setLastOverlayId(updated[0].id);
+        }
 
-    return () => cleanup();
-  }, []);
+        setComplaints(updated);
+      }
+    );
+
+    return () => unsubscribe();
+  }, [lastOverlayId]);
 
   const resolved = complaints.filter((c) => c.status === "Resolved").length;
   const pending = complaints.filter((c) => c.status === "Pending").length;
@@ -67,9 +75,7 @@ export default function CivilDefencePortal() {
             {/* Pending */}
             <div className="bg-yellow-100 p-6 rounded-2xl shadow-lg text-yellow-800 hover:shadow-xl transition text-center">
               <h2 className="text-lg font-semibold mb-2">Pending</h2>
-              <p className="text-4xl font-extrabold">
-                {complaints.filter((c) => c.status === "Pending").length}
-              </p>
+              <p className="text-4xl font-extrabold">{pending}</p>
             </div>
 
             {/* Investigating */}
@@ -116,7 +122,7 @@ export default function CivilDefencePortal() {
               <p>
                 <strong>Received:</strong>{" "}
                 {c.timestamp
-                  ? new Date(c.timestamp).toLocaleString()
+                  ? new Date(Number(c.timestamp)).toLocaleString()
                   : "No timestamp"}
               </p>
             </div>

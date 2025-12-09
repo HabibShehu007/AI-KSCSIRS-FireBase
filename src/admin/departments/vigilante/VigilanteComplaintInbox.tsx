@@ -1,25 +1,35 @@
-import type { Complaint } from "./types";
+// src/admin/departments/vigilante/VigilanteComplaintInbox.tsx
+import { useEffect, useState } from "react";
+import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
+import { listenToComplaints } from "../../../users/message/firebaseListener"; // ✅ Firestore listener
 import { Link } from "react-router-dom";
 
-type Props = {
-  complaints?: Complaint[];
-};
+export default function VigilanteComplaintInbox() {
+  const [complaints, setComplaints] = useState<Complaint[]>([]);
 
-export default function VigilanteComplaintInbox({ complaints = [] }: Props) {
+  useEffect(() => {
+    // ✅ Subscribe to Firestore complaints for Vigilante department
+    const unsubscribe = listenToComplaints(
+      "vigilante",
+      (incoming: Complaint[]) => {
+        const sorted = [...incoming].sort(
+          (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
+        );
+        setComplaints(sorted);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
   console.log("📨 VigilanteInbox received complaints:", complaints);
-
-  const sorted = complaints.sort(
-    (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
-  );
-
-  console.log("📊 Sorted complaints:", sorted);
 
   return (
     <div className="space-y-4">
-      {sorted.length === 0 ? (
+      {complaints.length === 0 ? (
         <p className="text-gray-600">No pending complaints at the moment.</p>
       ) : (
-        sorted.map((c) => (
+        complaints.map((c) => (
           <Link
             to={`/admin/vigilante/complaint/${c.id}`}
             key={c.id}
@@ -39,7 +49,7 @@ export default function VigilanteComplaintInbox({ complaints = [] }: Props) {
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 {c.timestamp
-                  ? new Date(c.timestamp).toLocaleString()
+                  ? new Date(Number(c.timestamp)).toLocaleString()
                   : "No timestamp"}
               </p>
             </div>

@@ -1,6 +1,7 @@
+// src/admin/police/PoliceLayout.tsx
 import { useRef, useState, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import type { Complaint } from "./types";
+import { joinPoliceRoom } from "./policeListener"; // ✅ improved listener
 import {
   FiHome,
   FiSettings,
@@ -17,7 +18,9 @@ export default function PoliceLayout() {
     return localStorage.getItem("police-muted") === "true";
   });
   const [hasNewMessage, setHasNewMessage] = useState(false);
-  const [lastAlertedId, setLastAlertedId] = useState<number | null>(null);
+  const [newestComplaintId, setNewestComplaintId] = useState<string | null>(
+    null
+  );
   const navigate = useNavigate();
 
   const toggleMute = () => {
@@ -27,38 +30,29 @@ export default function PoliceLayout() {
   };
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const stored = localStorage.getItem("complaints-police");
-      const list: Complaint[] = stored ? JSON.parse(stored) : [];
+    // ✅ Subscribe to Firestore complaints for police department
+    const unsubscribe = joinPoliceRoom((complaints, newest) => {
+      // Cache complaints locally
+      localStorage.setItem("complaints-police", JSON.stringify(complaints));
 
-      const pending = list
-        .filter((c) => c.status === "Pending")
-        .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+      if (newest && newest.id !== newestComplaintId) {
+        setHasNewMessage(true);
+        setNewestComplaintId(newest.id);
 
-      const latest = pending[0];
-      const isNew = latest && latest.id !== lastAlertedId;
-
-      setHasNewMessage(pending.length > 0);
-
-      if (isNew && !isMuted && audioRef.current) {
-        audioRef.current.play();
-        setLastAlertedId(latest.id);
+        if (!isMuted && audioRef.current) {
+          audioRef.current.play();
+        }
       }
-    }, 10000);
+    });
 
-    return () => clearInterval(interval);
-  }, [isMuted, lastAlertedId]);
+    return () => unsubscribe();
+  }, [isMuted, newestComplaintId]);
 
   const handleEngage = () => {
     setHasNewMessage(false);
-    setLastAlertedId(null);
-    const stored = localStorage.getItem("complaints-police");
-    const list: Complaint[] = stored ? JSON.parse(stored) : [];
-    const pending = list
-      .filter((c) => c.status === "Pending")
-      .sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
-    if (pending.length > 0) {
-      navigate(`/admin/police/complaint/${pending[0].id}`);
+
+    if (newestComplaintId) {
+      navigate(`/admin/police/complaint/${newestComplaintId}`);
     } else {
       navigate("/admin/police/inbox");
     }
@@ -121,7 +115,8 @@ export default function PoliceLayout() {
         </main>
       </div>
 
-      {hasNewMessage && (
+      {/* Overlay for new complaint */}
+      {hasNewMessage && newestComplaintId && (
         <div className="fixed inset-0 bg-red-700 bg-opacity-90 flex items-center justify-center z-50">
           <div className="text-center text-white">
             <FiAlertCircle className="mx-auto text-6xl mb-4" />
