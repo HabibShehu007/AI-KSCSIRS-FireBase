@@ -1,3 +1,4 @@
+// src/admin/central/pages/AdminAnalytics.tsx
 import { useEffect, useState } from "react";
 import {
   BarChart,
@@ -14,15 +15,18 @@ import {
   LineChart,
   Line,
 } from "recharts";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { db } from "../../../firebase"; // ✅ adjust path if needed
 
 type UserStat = { date: string; count: number };
 type ComplaintStat = { department: string; count: number };
 type Complaint = {
-  id: number;
+  id: string;
   user: string;
   department: string;
   message: string;
-  timestamp: string;
+  timestamp: number;
+  status?: string;
 };
 
 export default function AdminAnalytics() {
@@ -36,56 +40,60 @@ export default function AdminAnalytics() {
   });
 
   useEffect(() => {
-    // ✅ Hardcoded user stats (last 7 days)
-    setUserStats([
-      { date: "Nov 15", count: 12 },
-      { date: "Nov 16", count: 18 },
-      { date: "Nov 17", count: 25 },
-      { date: "Nov 18", count: 20 },
-      { date: "Nov 19", count: 30 },
-      { date: "Nov 20", count: 22 },
-      { date: "Nov 21", count: 28 },
-    ]);
+    const fetchData = async () => {
+      // ✅ Users count
+      const usersSnap = await getDocs(collection(db, "users"));
+      const usersCount = usersSnap.size;
 
-    // ✅ Hardcoded complaints by department
-    setComplaintStats([
-      { department: "Police", count: 42 },
-      { department: "DSS", count: 15 },
-      { department: "Civil Defence", count: 25 },
-      { department: "Vigilante", count: 10 },
-    ]);
+      // ✅ Complaints
+      const complaintsSnap = await getDocs(collection(db, "complaints"));
+      const complaints: Complaint[] = complaintsSnap.docs.map((doc) => ({
+        id: doc.id,
+        ...(doc.data() as Omit<Complaint, "id">),
+      }));
 
-    // ✅ Hardcoded recent complaints
-    setRecentComplaints([
-      {
-        id: 1,
-        user: "john.doe@example.com",
-        department: "Police",
-        message: "Delayed response to incident.",
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: 2,
-        user: "mary.smith@example.com",
-        department: "Civil Defence",
-        message: "Patrol not visible in my area.",
-        timestamp: new Date().toISOString(),
-      },
-      {
-        id: 3,
-        user: "admin@kscsirs.com",
-        department: "DSS",
-        message: "Complaint about unauthorized access.",
-        timestamp: new Date().toISOString(),
-      },
-    ]);
+      // Totals
+      setTotals({
+        users: usersCount,
+        complaints: complaints.length,
+        departments: new Set(complaints.map((c) => c.department)).size,
+      });
 
-    // ✅ Hardcoded totals
-    setTotals({
-      users: 120,
-      complaints: 92,
-      departments: 4,
-    });
+      // ✅ Complaints by department
+      const deptCounts: Record<string, number> = {};
+      complaints.forEach((c) => {
+        deptCounts[c.department] = (deptCounts[c.department] || 0) + 1;
+      });
+      setComplaintStats(
+        Object.entries(deptCounts).map(([department, count]) => ({
+          department,
+          count,
+        }))
+      );
+
+      // ✅ Recent complaints (last 5)
+      const recentQuery = query(
+        collection(db, "complaints"),
+        orderBy("timestamp", "desc"),
+        limit(5)
+      );
+      const recentSnap = await getDocs(recentQuery);
+      setRecentComplaints(
+        recentSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Complaint, "id">),
+        }))
+      );
+
+      // ✅ Example user stats (aggregate signups per day)
+      // For now, just mock with total users spread across days
+      setUserStats([
+        { date: "Today", count: usersCount },
+        { date: "Yesterday", count: Math.max(usersCount - 2, 0) },
+      ]);
+    };
+
+    fetchData();
   }, []);
 
   const COLORS = ["#2563eb", "#16a34a", "#f59e0b", "#dc2626", "#9333ea"];
@@ -167,7 +175,7 @@ export default function AdminAnalytics() {
               outerRadius={120}
               label
             >
-              {complaintStats.map((entry, index) => (
+              {complaintStats.map((_, index) => (
                 <Cell
                   key={`cell-${index}`}
                   fill={COLORS[index % COLORS.length]}
@@ -192,7 +200,7 @@ export default function AdminAnalytics() {
               </p>
               <p className="text-sm text-gray-500">{c.message}</p>
               <p className="text-xs text-gray-400">
-                {new Date(c.timestamp).toLocaleString()}
+                {new Date(Number(c.timestamp)).toLocaleString()}
               </p>
             </li>
           ))}

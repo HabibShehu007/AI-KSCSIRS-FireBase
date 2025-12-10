@@ -95,7 +95,7 @@ const App = () => {
         <Route path="/admin/dss" element={<DssLayout />}>
           <Route index element={<DssPortal />} />
           <Route path="dashboard" element={<DssPortal />} />
-          <Route path="inbox" element={<DssComplaintInbox complaints={[]} />} />
+          <Route path="inbox" element={<DssComplaintInbox />} />
           <Route path="complaint/:id" element={<DssComplaintDetails />} />
           <Route path="analytics" element={<DssAnalytics />} />
         </Route>

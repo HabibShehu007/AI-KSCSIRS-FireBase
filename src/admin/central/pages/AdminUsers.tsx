@@ -1,5 +1,5 @@
+// src/admin/central/pages/AdminUsers.tsx
 import { useEffect, useState } from "react";
-import axios from "axios";
 import {
   FiEye,
   FiTrash,
@@ -13,60 +13,60 @@ import {
   FiX,
   FiCheckCircle,
   FiUser,
-} from "react-icons/fi"; // swapped icons for more engaging look
+} from "react-icons/fi";
 import ConfirmModal from "./ConfirmModal";
-import type { User } from "../../../types/UserTypes"; // ✅ import User type from your shared file
+import type { User } from "../../../types/UserTypes";
+import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { db } from "../../../firebase";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = () => {
+  const fetchUsers = async () => {
     setLoading(true);
-    axios
-      .get("http://localhost:3000/admin/users")
-      .then((res) => setUsers(res.data))
-      .catch(() => alert("Failed to load users"))
-      .finally(() => setLoading(false));
+    try {
+      const snap = await getDocs(collection(db, "users"));
+      const data: User[] = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<User, "id">),
+      }));
+      setUsers(data);
+    } catch (err) {
+      console.error("❌ Failed to load users", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDelete = async (id: number) => {
-    setConfirmDeleteId(id); // open modal instead of window.confirm
+  const handleDelete = (id: string) => {
+    setConfirmDeleteId(id);
   };
 
   const confirmDelete = async () => {
-    if (confirmDeleteId === null) return;
+    if (!confirmDeleteId) return;
     try {
-      await axios.delete(
-        `http://localhost:3000/admin/users/${confirmDeleteId}`
-      );
+      await deleteDoc(doc(db, "users", confirmDeleteId));
       setUsers(users.filter((u) => u.id !== confirmDeleteId));
-    } catch {
-      alert("Failed to delete user");
+    } catch (err) {
+      console.error("❌ Failed to delete user", err);
     } finally {
-      setConfirmDeleteId(null); // close modal
+      setConfirmDeleteId(null);
     }
   };
 
-  const handleBlock = async (id: number) => {
-    alert(`🚫 Block user with ID ${id} (implement backend logic here)`);
+  const handleBlock = (id: string) => {
+    alert(`🚫 Block user with ID ${id} (implement Firestore logic here)`);
   };
 
-  const handleView = async (user: User) => {
-    try {
-      const res = await axios.get(
-        `http://localhost:3000/admin/users/${user.id}`
-      );
-      setSelectedUser(res.data); // ✅ now you’ll have phone, address, state, lga
-    } catch {
-      alert("Failed to load user details");
-    }
+  const handleView = (user: User) => {
+    setSelectedUser(user);
   };
 
   return (
@@ -82,7 +82,6 @@ export default function AdminUsers() {
         </p>
       ) : (
         <div>
-          {/* Total Users Count */}
           <div className="mb-4 text-center">
             <span className="text-2xl font-extrabold text-[#0a1f44]">
               Total Users: {users.length}
@@ -105,7 +104,6 @@ export default function AdminUsers() {
                   key={user.id}
                   className="border-t hover:bg-gray-50 transition"
                 >
-                  {/* Bold numbering */}
                   <td className="p-4 font-extrabold text-[#0a1f44]">
                     {index + 1}
                   </td>
@@ -114,7 +112,11 @@ export default function AdminUsers() {
                   </td>
                   <td className="p-4 text-gray-700">{user.email}</td>
                   <td className="p-4 text-gray-600">
-                    {new Date(user.created_at).toLocaleDateString()}
+                    {user.createdAt
+                      ? new Date(
+                          user.createdAt.seconds * 1000
+                        ).toLocaleDateString()
+                      : "N/A"}
                   </td>
                   <td className="p-4 flex gap-3">
                     <button
@@ -147,7 +149,6 @@ export default function AdminUsers() {
       {selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-linear-to-br from-white to-gray-50 rounded-2xl shadow-2xl p-10 w-lg border border-gray-200">
-            {/* Header */}
             <div className="flex flex-col items-center mb-8">
               <div className="flex items-center gap-3">
                 <FiUserMinus className="text-blue-600 text-5xl" />
@@ -208,12 +209,23 @@ export default function AdminUsers() {
                   <span className="text-gray-900">{selectedUser.lga}</span>
                 </p>
               )}
+              {selectedUser.lga && (
+                <p className="flex items-center gap-3 font-semibold text-gray-800">
+                  <FiMap className="text-orange-600 text-2xl" />
+                  <span className="text-[#0a1f44] font-bold">LGA:</span>
+                  <span className="text-gray-900">{selectedUser.lga}</span>
+                </p>
+              )}
 
               <p className="flex items-center gap-3 font-semibold text-gray-800">
                 <FiCalendar className="text-teal-600 text-2xl" />
                 <span className="text-[#0a1f44] font-bold">Registered:</span>
                 <span className="text-gray-900">
-                  {new Date(selectedUser.created_at).toLocaleString()}
+                  {selectedUser.createdAt
+                    ? new Date(
+                        selectedUser.createdAt.seconds * 1000
+                      ).toLocaleString()
+                    : "N/A"}
                 </span>
               </p>
 
@@ -262,7 +274,7 @@ export default function AdminUsers() {
       {/* Confirm Delete Modal */}
       {confirmDeleteId !== null && (
         <ConfirmModal
-          message="Are you sure you want to delete this user from your DataBase? This action cannot be undone."
+          message="Are you sure you want to delete this user from your database? This action cannot be undone."
           onConfirm={confirmDelete}
           onCancel={() => setConfirmDeleteId(null)}
         />

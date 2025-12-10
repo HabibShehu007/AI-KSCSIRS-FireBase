@@ -1,11 +1,20 @@
+// src/admin/central/pages/AdminStaffPage.tsx
 import { useEffect, useState } from "react";
-import axios from "axios";
-import { FiPlus } from "react-icons/fi";
+import { FiPlus, FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
 import StaffTable from "../components/StaffTable";
 import StaffForm from "../components/StaffForm";
 import StaffModal from "../components/StaffModal";
-import type { Staff } from "../../../types/StaffTypes";
-import { FiEye, FiEdit, FiTrash2 } from "react-icons/fi";
+import type { Staff, StaffFormData } from "../../../types/StaffTypes";
+import {
+  collection,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  doc,
+  getDocs,
+  serverTimestamp,
+} from "firebase/firestore";
+import { db } from "../../../firebase";
 
 export default function AdminStaffPage() {
   const [staffs, setStaffs] = useState<Staff[]>([]);
@@ -16,7 +25,7 @@ export default function AdminStaffPage() {
 
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
 
-  const [formData, setFormData] = useState<Omit<Staff, "id" | "createdAt">>({
+  const [formData, setFormData] = useState<StaffFormData>({
     department_email: "",
     staff_email: "",
     password: "",
@@ -29,17 +38,24 @@ export default function AdminStaffPage() {
 
   const fetchStaffs = async () => {
     try {
-      const res = await axios.get("http://localhost:3000/admin/staff");
-      setStaffs(res.data);
-    } catch {
-      console.error("❌ Failed to load staff");
+      const snap = await getDocs(collection(db, "staffs"));
+      const data: Staff[] = snap.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...(docSnap.data() as Omit<Staff, "id">),
+      }));
+      setStaffs(data);
+    } catch (err) {
+      console.error("❌ Failed to load staff", err);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await axios.post("http://localhost:3000/admin/staff", formData);
+      await addDoc(collection(db, "staffs"), {
+        ...formData,
+        createdAt: serverTimestamp(),
+      });
       setShowForm(false);
       setFormData({
         department_email: "",
@@ -48,8 +64,8 @@ export default function AdminStaffPage() {
         department: "",
       });
       fetchStaffs();
-    } catch {
-      console.error("❌ Failed to add staff");
+    } catch (err) {
+      console.error("❌ Failed to add staff", err);
     }
   };
 
@@ -57,29 +73,28 @@ export default function AdminStaffPage() {
     e.preventDefault();
     if (!selectedStaff) return;
     try {
-      await axios.put(
-        `http://localhost:3000/admin/staff/${selectedStaff.id}`,
-        formData
-      );
+      const ref = doc(db, "staffs", selectedStaff.id);
+      await updateDoc(ref, {
+        ...formData,
+      });
       setShowEdit(false);
       setSelectedStaff(null);
       fetchStaffs();
-    } catch {
-      console.error("❌ Failed to update staff");
+    } catch (err) {
+      console.error("❌ Failed to update staff", err);
     }
   };
 
   const handleDelete = async () => {
     if (!selectedStaff) return;
     try {
-      await axios.delete(
-        `http://localhost:3000/admin/staff/${selectedStaff.id}`
-      );
+      const ref = doc(db, "staffs", selectedStaff.id);
+      await deleteDoc(ref);
       setShowDelete(false);
       setSelectedStaff(null);
       fetchStaffs();
-    } catch {
-      console.error("❌ Failed to delete staff");
+    } catch (err) {
+      console.error("❌ Failed to delete staff", err);
     }
   };
 
@@ -100,7 +115,7 @@ export default function AdminStaffPage() {
           setFormData({
             department_email: staff.department_email,
             staff_email: staff.staff_email,
-            password: staff.password ?? "", // if password is not returned, leave blank
+            password: staff.password ?? "",
             department: staff.department,
           });
           setShowEdit(true);
@@ -134,11 +149,8 @@ export default function AdminStaffPage() {
       {showView && selectedStaff && (
         <StaffModal onClose={() => setShowView(false)}>
           <div className="flex flex-col items-center space-y-4">
-            {/* Centered Icon */}
             <FiEye className="text-blue-600 text-4xl" />
             <h2 className="text-xl font-bold text-[#0a1f44]">View Staff</h2>
-
-            {/* Staff Details */}
             <div className="space-y-3 text-center">
               <p>
                 <strong>Department Email:</strong>{" "}
@@ -152,7 +164,11 @@ export default function AdminStaffPage() {
               </p>
               <p>
                 <strong>Created At:</strong>{" "}
-                {new Date(selectedStaff.createdAt).toLocaleString()}
+                {selectedStaff.createdAt
+                  ? new Date(
+                      selectedStaff.createdAt.seconds * 1000
+                    ).toLocaleString()
+                  : "N/A"}
               </p>
             </div>
           </div>
@@ -165,7 +181,6 @@ export default function AdminStaffPage() {
           <div className="flex flex-col items-center space-y-4">
             <FiEdit className="text-green-600 text-4xl" />
             <h2 className="text-xl font-bold text-[#0a1f44]">Edit Staff</h2>
-
             <StaffForm
               formData={formData}
               setFormData={setFormData}
@@ -181,12 +196,10 @@ export default function AdminStaffPage() {
           <div className="flex flex-col items-center space-y-4">
             <FiTrash2 className="text-red-600 text-4xl" />
             <h2 className="text-xl font-bold text-[#0a1f44]">Delete Staff</h2>
-
             <p className="text-red-600 font-semibold text-center">
               Are you sure you want to delete staff{" "}
               <strong>{selectedStaff.staff_email}</strong>?
             </p>
-
             <div className="flex justify-center gap-3 mt-4">
               <button
                 onClick={() => setShowDelete(false)}

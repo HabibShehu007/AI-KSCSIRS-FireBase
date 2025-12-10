@@ -1,4 +1,4 @@
-import { FiMail, FiUser, FiBriefcase, FiLock, FiPlus } from "react-icons/fi";
+// src/admin/central/components/StaffForm.tsx
 import type { StaffFormData } from "../../../types/StaffTypes";
 
 interface StaffFormProps {
@@ -7,93 +7,76 @@ interface StaffFormProps {
   onSubmit: (e: React.FormEvent) => void;
 }
 
-// Example departments list (you can fetch dynamically later)
-const departments = ["police", "dss", "civildefence", "vigilante"];
-
 export default function StaffForm({
   formData,
   setFormData,
   onSubmit,
 }: StaffFormProps) {
   return (
-    <form
-      onSubmit={onSubmit}
-      className="space-y-8 bg-white p-6 rounded-xl shadow-lg"
-    >
-      {/* Header */}
-      <h2 className="text-2xl font-extrabold text-[#0a1f44] text-center mb-6 flex items-center justify-center gap-2">
-        <FiPlus className="text-blue-600" /> Add Staff to Department
-      </h2>
-
+    <form onSubmit={onSubmit} className="space-y-4 w-full">
       {/* Department Email */}
       <div>
-        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          <FiMail className="text-blue-600" /> Department Email
+        <label className="block text-sm font-medium text-gray-700">
+          Department Email
         </label>
         <input
           type="email"
-          placeholder="Enter department email"
           value={formData.department_email}
           onChange={(e) =>
-            setFormData({ ...formData, department_email: e.target.value })
+            setFormData((prev) => ({
+              ...prev,
+              department_email: e.target.value,
+            }))
           }
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+          className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
           required
         />
       </div>
 
       {/* Staff Email */}
       <div>
-        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          <FiUser className="text-green-600" /> Staff Email
+        <label className="block text-sm font-medium text-gray-700">
+          Staff Email
         </label>
         <input
           type="email"
-          placeholder="Enter staff email"
           value={formData.staff_email}
           onChange={(e) =>
-            setFormData({ ...formData, staff_email: e.target.value })
+            setFormData((prev) => ({ ...prev, staff_email: e.target.value }))
           }
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-green-500 focus:outline-none"
+          className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
           required
         />
       </div>
 
-      {/* Department Dropdown */}
-      <div>
-        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          <FiBriefcase className="text-indigo-600" /> Department
-        </label>
-        <select
-          value={formData.department}
-          onChange={(e) =>
-            setFormData({ ...formData, department: e.target.value })
-          }
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none capitalize"
-          required
-        >
-          <option value="">Select department</option>
-          {departments.map((dept) => (
-            <option key={dept} value={dept}>
-              {dept}
-            </option>
-          ))}
-        </select>
-      </div>
-
       {/* Password */}
       <div>
-        <label className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
-          <FiLock className="text-red-600" /> Password
+        <label className="block text-sm font-medium text-gray-700">
+          Password
         </label>
         <input
           type="password"
-          placeholder="Enter password"
           value={formData.password}
           onChange={(e) =>
-            setFormData({ ...formData, password: e.target.value })
+            setFormData((prev) => ({ ...prev, password: e.target.value }))
           }
-          className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:outline-none"
+          className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
+          required
+        />
+      </div>
+
+      {/* Department */}
+      <div>
+        <label className="block text-sm font-medium text-gray-700">
+          Department
+        </label>
+        <input
+          type="text"
+          value={formData.department}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, department: e.target.value }))
+          }
+          className="mt-1 block w-full border border-gray-300 rounded-lg p-2"
           required
         />
       </div>
@@ -101,9 +84,9 @@ export default function StaffForm({
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-blue-600 to-blue-800 text-white px-4 py-3 rounded-lg hover:from-blue-700 hover:to-blue-900 font-bold shadow-md transition"
+        className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition"
       >
-        <FiPlus className="text-xl" /> Add Staff
+        Save
       </button>
     </form>
   );

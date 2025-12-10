@@ -44,7 +44,9 @@ export default function StaffTable({
             <td className="p-4 text-gray-800">{s.staff_email}</td>
             <td className="p-4 text-gray-800 capitalize">{s.department}</td>
             <td className="p-4 text-gray-600">
-              {new Date(s.createdAt).toLocaleDateString()}
+              {s.createdAt
+                ? new Date(s.createdAt.seconds * 1000).toLocaleDateString()
+                : "N/A"}
             </td>
 
             {/* ✅ Actions column */}

@@ -1,5 +1,5 @@
+// src/admin/central/pages/Dashboard.tsx
 import { useEffect, useState } from "react";
-import axios from "axios";
 import {
   FiUsers,
   FiBriefcase,
@@ -7,65 +7,73 @@ import {
   FiSend,
   FiMessageSquare,
 } from "react-icons/fi";
+import { collection, getDocs, query, orderBy, limit } from "firebase/firestore";
+import { db } from "../../../firebase";
 
 type Message = {
+  id: string;
   user: string;
   department: string;
   subject: string;
   message: string;
-  timestamp: string;
+  timestamp?: { seconds: number; nanoseconds: number };
 };
 
 type Complaint = {
+  id: string;
   user: string;
   subject: string;
   message: string;
   status: string;
-  timestamp: string;
+  timestamp?: { seconds: number; nanoseconds: number };
 };
 
 export default function Dashboard() {
-  const [totalUsers, setTotalUsers] = useState<string | number>("Loading...");
-  const [totalComplaints, setTotalComplaints] = useState<string | number>(
-    "Loading..."
-  );
-  const [totalStaffs, setTotalStaffs] = useState<string | number>("Loading...");
+  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [totalComplaints, setTotalComplaints] = useState<number>(0);
+  const [totalStaffs, setTotalStaffs] = useState<number>(0);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [recentComplaints, setRecentComplaints] = useState<Complaint[]>([]);
 
   useEffect(() => {
-    axios
-      .get("http://localhost:3000/admin/dashboard/central")
-      .then((res) => {
-        const data = res.data;
-        console.log("📦 Backend JSON:", data);
+    const fetchData = async () => {
+      try {
+        // ✅ Users count
+        const usersSnap = await getDocs(collection(db, "users"));
+        setTotalUsers(usersSnap.size);
 
-        setTotalUsers(data.totalUsers ?? "Error");
-        setTotalStaffs(typeof data.staffs === "number" ? data.staffs : "Error");
+        // ✅ Staffs count
+        const staffsSnap = await getDocs(collection(db, "staffs"));
+        setTotalStaffs(staffsSnap.size);
 
-        if (Array.isArray(data.complaints)) {
-          // ✅ Count complaints by simply using length
-          setTotalComplaints(data.complaints.length);
-          setRecentComplaints(data.complaints.slice(0, 6));
-        } else {
-          setTotalComplaints("Error");
-          setRecentComplaints([]);
-        }
+        // ✅ Complaints
+        const complaintsSnap = await getDocs(collection(db, "complaints"));
+        const complaints: Complaint[] = complaintsSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Complaint, "id">),
+        }));
+        setTotalComplaints(complaints.length);
+        setRecentComplaints(complaints.slice(0, 6));
 
-        if (Array.isArray(data.messages)) {
-          setMessages(data.messages.slice(0, 6));
-        } else {
-          setMessages([]);
-        }
-      })
-      .catch(() => {
-        setTotalUsers("Error");
-        setTotalComplaints("Error");
-        setTotalStaffs("Error");
-        setMessages([]);
-        setRecentComplaints([]);
-      });
+        // ✅ Messages (latest 6)
+        const messagesQuery = query(
+          collection(db, "messages"),
+          orderBy("timestamp", "desc"),
+          limit(6)
+        );
+        const messagesSnap = await getDocs(messagesQuery);
+        const msgs: Message[] = messagesSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...(doc.data() as Omit<Message, "id">),
+        }));
+        setMessages(msgs);
+      } catch (err) {
+        console.error("❌ Failed to load dashboard data", err);
+      }
+    };
+
+    fetchData();
   }, []);
 
   return (
@@ -85,8 +93,9 @@ export default function Dashboard() {
           value={totalComplaints}
           icon={<FiAlertCircle />}
         />
-        <StatCard title="Staffs" value={totalStaffs} icon={<FiBriefcase />} />{" "}
+        <StatCard title="Staffs" value={totalStaffs} icon={<FiBriefcase />} />
       </div>
+
       {/* Recent Messages */}
       <div className="bg-white p-6 rounded-2xl shadow mb-10">
         <h2 className="text-xl font-bold text-[#0a1f44] mb-6 flex items-center gap-2">
@@ -95,9 +104,9 @@ export default function Dashboard() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {messages.length > 0 ? (
-            messages.map((msg, i) => (
+            messages.map((msg) => (
               <div
-                key={i}
+                key={msg.id}
                 className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition"
               >
                 <h3 className="text-lg font-semibold text-[#0a1f44] mb-2 truncate">
@@ -112,7 +121,7 @@ export default function Dashboard() {
                 </p>
                 <p className="text-xs text-gray-400">
                   {msg.timestamp
-                    ? new Date(msg.timestamp).toLocaleString()
+                    ? new Date(msg.timestamp.seconds * 1000).toLocaleString()
                     : "No timestamp"}
                 </p>
               </div>
@@ -131,9 +140,9 @@ export default function Dashboard() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {recentComplaints.length > 0 ? (
-            recentComplaints.map((c, i) => (
+            recentComplaints.map((c) => (
               <div
-                key={i}
+                key={c.id}
                 className="bg-gray-50 border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-md transition"
               >
                 <h3 className="text-lg font-semibold text-[#0a1f44] mb-2 truncate">
@@ -150,7 +159,7 @@ export default function Dashboard() {
                 </p>
                 <p className="text-xs text-gray-400">
                   {c.timestamp
-                    ? new Date(c.timestamp).toLocaleString()
+                    ? new Date(c.timestamp.seconds * 1000).toLocaleString()
                     : "No timestamp"}
                 </p>
               </div>
