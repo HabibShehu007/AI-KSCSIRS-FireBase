@@ -157,7 +157,7 @@ export default function Login() {
               initial={{ scale: 0.7, opacity: 0, y: -30 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.7, opacity: 0, y: 30 }}
-              transition={{ duration: 1.5, ease: "easeOut" }}
+              transition={{ duration: 0.7, ease: "easeOut" }}
               className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border ${
                 modal.type === "error" ? "border-red-200" : "border-green-200"
               }`}
