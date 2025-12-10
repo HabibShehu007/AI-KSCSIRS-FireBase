@@ -4,7 +4,7 @@ import civilDefenceImg from "../../assets/avatars/civil-defence.png";
 import vigilanteImg from "../../assets/avatars/vigilante.png";
 import roadSafetyImg from "../../assets/avatars/road-safety.png";
 import fireServiceImg from "../../assets/avatars/fire-service.png";
-import immigrationImg from "../../assets/avatars/immigration.png";
+import immigrationImg from "../../assets/avatars/Immigration.png";
 import efccImg from "../../assets/avatars/efcc.png";
 
 import {
