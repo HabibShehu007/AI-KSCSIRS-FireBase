@@ -13,7 +13,7 @@ export default function Landing() {
         playsInline
         className="absolute w-full h-full object-cover"
       >
-        <source src="/assets/landing-bg.mp4" type="video/mp4" />
+        <source src="/landing-bg.mp4" type="video/mp4" />
       </video>
 
       {/* Overlay */}
@@ -30,7 +30,7 @@ export default function Landing() {
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="text-4xl md:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight"
         >
-          Welcome to AI-KSCSIRS
+          Welcome To AI-KSCSIRS
         </motion.h1>
 
         <motion.p
