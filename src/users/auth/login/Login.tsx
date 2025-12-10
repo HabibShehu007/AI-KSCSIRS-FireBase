@@ -1,21 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { FiAlertCircle, FiCheckCircle } from "react-icons/fi";
-
-// Firebase imports
+import { motion, AnimatePresence } from "framer-motion";
+import { FiArrowLeft, FiXCircle, FiThumbsUp } from "react-icons/fi";
 import { auth } from "../../../firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 
-type LogPayload = {
-  email: string;
-};
-
-type LogEntry = {
-  action: "login";
-  payload: LogPayload;
-  timestamp: string;
-};
+type LogPayload = { email: string };
+type LogEntry = { action: "login"; payload: LogPayload; timestamp: string };
 
 export default function Login() {
   const navigate = useNavigate();
@@ -24,6 +15,7 @@ export default function Login() {
     type: "error" | "success";
     message: string;
   } | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -40,9 +32,9 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
 
     try {
-      // ✅ Firebase login
       const userCredential = await signInWithEmailAndPassword(
         auth,
         form.email,
@@ -50,12 +42,8 @@ export default function Login() {
       );
       const user = userCredential.user;
 
-      // ✅ Store UID for dashboard greeting
       sessionStorage.setItem("userId", user.uid);
-
-      // ✅ Optional: store user email
       localStorage.setItem("userInfo", JSON.stringify({ email: user.email }));
-
       logToAdmin("login", { email: form.email });
 
       setModal({
@@ -63,23 +51,32 @@ export default function Login() {
         message: "Login successful! Redirecting to dashboard...",
       });
 
+      // ⏳ Force spinner to stay at least 2s
       setTimeout(() => {
+        setLoading(false); // stop spinner
         setModal(null);
         navigate("/user/dashboard");
       }, 2000);
     } catch (err: unknown) {
       const errorMessage =
         err instanceof Error ? err.message : "Login failed. Please try again.";
+      setModal({ type: "error", message: errorMessage });
 
-      setModal({
-        type: "error",
-        message: errorMessage,
-      });
+      // ⏳ Also keep spinner for 2s on error
+      setTimeout(() => setLoading(false), 2000);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-900 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-blue-900 px-4 relative">
+      {/* 🔙 Back to Signup button */}
+      <button
+        onClick={() => navigate("/user/auth/signup")}
+        className="absolute top-6 left-6 flex items-center gap-2 text-white hover:text-gray-200 transition"
+      >
+        <FiArrowLeft className="text-lg" /> Back to Sign Up
+      </button>
+
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -115,9 +112,25 @@ export default function Login() {
 
           <button
             type="submit"
-            className="w-full py-2 bg-blue-700 text-white rounded-md hover:bg-blue-800"
+            disabled={loading}
+            className={`w-full py-2 rounded-md text-white font-semibold transition ${
+              loading
+                ? "bg-blue-400 cursor-not-allowed"
+                : "bg-blue-700 hover:bg-blue-800"
+            }`}
           >
-            Login
+            {loading ? (
+              <motion.div
+                className="flex items-center justify-center gap-2"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+              >
+                <motion.div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Logging in...
+              </motion.div>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 
@@ -131,52 +144,55 @@ export default function Login() {
         </div>
       </motion.div>
 
-      {/* 🔔 Modal for success or error */}
-      {modal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          className="absolute inset-0 z-50 flex items-center justify-center bg-white bg-opacity-90"
-        >
+      {/* 🔔 Animated Modal */}
+      <AnimatePresence>
+        {modal && (
           <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border ${
-              modal.type === "error" ? "border-red-200" : "border-green-200"
-            }`}
+            className="absolute inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
           >
-            <div
-              className={`flex justify-center mb-3 ${
-                modal.type === "error" ? "text-red-600" : "text-green-600"
+            <motion.div
+              initial={{ scale: 0.7, opacity: 0, y: -30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.7, opacity: 0, y: 30 }}
+              transition={{ duration: 1.5, ease: "easeOut" }}
+              className={`bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full text-center border ${
+                modal.type === "error" ? "border-red-200" : "border-green-200"
               }`}
             >
-              {modal.type === "error" ? (
-                <FiAlertCircle className="text-5xl" />
-              ) : (
-                <FiCheckCircle className="text-5xl" />
-              )}
-            </div>
-            <h3
-              className={`text-xl font-bold mb-2 ${
-                modal.type === "error" ? "text-red-600" : "text-green-600"
-              }`}
-            >
-              {modal.type === "error" ? "Login Failed" : "Login Successful"}
-            </h3>
-            <p className="text-gray-700 mb-4">{modal.message}</p>
-            {modal.type === "error" && (
-              <button
-                onClick={() => setModal(null)}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              <div
+                className={`flex justify-center mb-3 ${
+                  modal.type === "error" ? "text-red-600" : "text-green-600"
+                }`}
               >
-                Try Again
-              </button>
-            )}
+                {modal.type === "error" ? (
+                  <FiXCircle className="text-6xl animate-bounce" />
+                ) : (
+                  <FiThumbsUp className="text-6xl animate-bounce" />
+                )}
+              </div>
+              <h3
+                className={`text-xl font-bold mb-2 ${
+                  modal.type === "error" ? "text-red-600" : "text-green-600"
+                }`}
+              >
+                {modal.type === "error" ? "Login Failed" : "Login Successful"}
+              </h3>
+              <p className="text-gray-700 mb-4">{modal.message}</p>
+              {modal.type === "error" && (
+                <button
+                  onClick={() => setModal(null)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  Try Again
+                </button>
+              )}
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }
