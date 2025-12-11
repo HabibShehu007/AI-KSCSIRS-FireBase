@@ -119,7 +119,7 @@ export default function Signup() {
         className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm relative"
       >
         <h2 className="text-xl font-bold text-center text-blue-900 mb-4">
-          Create Account
+          Create Your Account
         </h2>
 
         {/* Progress bar only, removed distracting step text */}
