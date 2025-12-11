@@ -10,23 +10,8 @@ import {
   FiMapPin,
   FiClock,
 } from "react-icons/fi";
-
 import type { IconType } from "react-icons";
-
-type Complaint = {
-  id: number;
-  user: string;
-  email: string;
-  phone: string;
-  subject: string;
-  message: string;
-  address: string;
-  files: string[];
-  voiceNote?: string;
-  timestamp: string;
-  status: string;
-  department: string;
-};
+import type { Complaint } from "./UserReports";
 
 type Props = {
   report: Complaint;
@@ -44,7 +29,12 @@ const icons: Record<string, IconType> = {
 };
 
 export default function ReportCard({ report, onView }: Props) {
-  const Icon = icons[report.department] || FiShield;
+  const Icon = report.department
+    ? icons[report.department] || FiShield
+    : FiShield;
+
+  // ✅ normalize files so it's always an array
+  const files = report.files ?? [];
 
   return (
     <div className="border border-gray-200 rounded-2xl p-6 shadow-md bg-white hover:shadow-xl transition duration-300">
@@ -54,7 +44,9 @@ export default function ReportCard({ report, onView }: Props) {
           <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
             <Icon className="text-xl" />
           </div>
-          <h3 className="font-bold text-[#0a1f44] text-lg">{report.subject}</h3>
+          <h3 className="font-bold text-[#0a1f44] text-lg">
+            {report.subject || "Untitled Complaint"}
+          </h3>
         </div>
         <span
           className={`text-xs font-semibold px-3 py-1 rounded-full ${
@@ -63,7 +55,7 @@ export default function ReportCard({ report, onView }: Props) {
               : "bg-yellow-100 text-yellow-700"
           }`}
         >
-          {report.status}
+          {report.status || "Pending"}
         </span>
       </div>
 
@@ -72,28 +64,53 @@ export default function ReportCard({ report, onView }: Props) {
         <div className="flex items-center gap-2">
           <FiMapPin className="text-blue-600" />
           <span>
-            <strong>Location:</strong> {report.address}
+            <strong>Location:</strong> {report.address || "Not provided"}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <FiClock className="text-blue-600" />
           <span>
             <strong>Submitted:</strong>{" "}
-            {new Date(report.timestamp).toLocaleString()}
+            {report.createdAt
+              ? new Date(report.createdAt).toLocaleString()
+              : "Unknown"}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-blue-600 font-bold">Dept:</span>
-          <span className="capitalize">{report.department}</span>
+          <span className="capitalize">{report.department || "Unknown"}</span>
         </div>
       </div>
 
       {/* Message Preview */}
       <p className="text-sm text-gray-600 leading-relaxed mb-4">
-        {report.message.length > 100
-          ? `${report.message.slice(0, 100)}...`
-          : report.message}
+        {report.message
+          ? report.message.length > 100
+            ? `${report.message.slice(0, 100)}...`
+            : report.message
+          : "No description provided"}
       </p>
+
+      {/* Media Preview */}
+      {report.voiceNote && (
+        <audio
+          controls
+          src={report.voiceNote}
+          className="w-full mb-3 rounded-md"
+        />
+      )}
+      {files.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-3">
+          {files.map((file, idx) => (
+            <img
+              key={idx}
+              src={file}
+              alt={`evidence-${idx}`}
+              className="w-24 h-24 object-cover rounded-md border"
+            />
+          ))}
+        </div>
+      )}
 
       {/* Action */}
       <div className="text-right">

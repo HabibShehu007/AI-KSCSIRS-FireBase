@@ -1,21 +1,23 @@
 import { useEffect, useState } from "react";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebase";
 import ReportCard from "./ReportCard";
 import ReportFilter from "./ReportFilter";
 import ReportModal from "./ReportModal";
 
-type Complaint = {
-  id: number;
-  user: string;
-  email: string;
-  phone: string;
-  subject: string;
-  message: string;
-  address: string;
-  files: string[];
+export type Complaint = {
+  id: string;
+  userName?: string;
+  userEmail?: string;
+  userPhone?: string;
+  subject?: string;
+  message?: string;
+  address?: string;
+  files?: string[];
   voiceNote?: string;
-  timestamp: string;
-  status: string;
-  department: string;
+  createdAt?: string;
+  status?: string;
+  department?: string;
 };
 
 export default function UserReports() {
@@ -26,35 +28,33 @@ export default function UserReports() {
   const [selectedReport, setSelectedReport] = useState<Complaint | null>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("userInfo");
-    let email = "";
+    const fetchReports = async () => {
+      const storedUser = localStorage.getItem("userInfo");
+      let email = "";
 
-    if (storedUser) {
-      const parsed = JSON.parse(storedUser);
-      email = parsed.email;
-    }
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        email = parsed.email;
+      }
 
-    const allReports: Complaint[] = [];
-    const departments = [
-      "police",
-      "immigration",
-      "fireservice",
-      "roadsafety",
-      "civildefence",
-      "vigilante",
-      "dss",
-      "efcc",
-    ];
+      if (!email) return;
 
-    departments.forEach((dept) => {
-      const deptReports = JSON.parse(
-        localStorage.getItem(`complaints_${dept}`) || "[]"
-      ) as Complaint[];
-      allReports.push(...deptReports);
-    });
+      // ✅ Query Firestore for reports belonging to this user
+      const q = query(
+        collection(db, "complaints"),
+        where("userEmail", "==", email)
+      );
+      const snapshot = await getDocs(q);
 
-    const userReports = allReports.filter((r) => r.email === email);
-    setReports(userReports);
+      const userReports: Complaint[] = snapshot.docs.map((doc) => {
+        const data = doc.data() as Omit<Complaint, "id">;
+        return { id: doc.id, ...data };
+      });
+
+      setReports(userReports);
+    };
+
+    fetchReports();
   }, []);
 
   useEffect(() => {

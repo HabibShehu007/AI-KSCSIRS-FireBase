@@ -7,21 +7,7 @@ import {
   FiMic,
   FiFileText,
 } from "react-icons/fi";
-
-type Complaint = {
-  id: number;
-  user: string;
-  email: string;
-  phone: string;
-  subject: string;
-  message: string;
-  address: string;
-  files: string[];
-  voiceNote?: string;
-  timestamp: string;
-  status: string;
-  department: string;
-};
+import type { Complaint } from "./UserReports";
 
 type Props = {
   report: Complaint | null;
@@ -41,11 +27,12 @@ export default function ReportModal({ report, onClose }: Props) {
         {/* Header */}
         <div className="mb-6">
           <h3 className="text-2xl font-extrabold text-[#0a1f44] tracking-wide mb-1">
-            {report.subject}
+            {report.subject || "Untitled Complaint"}
           </h3>
           <p className="text-sm text-gray-600">
             <span className="font-semibold">Department:</span>{" "}
-            <span className="capitalize">{report.department}</span> |{" "}
+            <span className="capitalize">{report.department || "Unknown"}</span>{" "}
+            |{" "}
             <span
               className={`font-semibold px-2 py-1 rounded-full ${
                 report.status === "Resolved"
@@ -53,7 +40,7 @@ export default function ReportModal({ report, onClose }: Props) {
                   : "bg-yellow-100 text-yellow-700"
               }`}
             >
-              {report.status}
+              {report.status || "Pending"}
             </span>
           </p>
         </div>
@@ -63,32 +50,34 @@ export default function ReportModal({ report, onClose }: Props) {
           <div className="flex items-center gap-2">
             <FiUser className="text-blue-600" />
             <span>
-              <strong>Reported By:</strong> {report.user}
+              <strong>Reported By:</strong> {report.userName || "Anonymous"}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <FiMail className="text-blue-600" />
             <span>
-              <strong>Email:</strong> {report.email}
+              <strong>Email:</strong> {report.userEmail || "Not provided"}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <FiPhone className="text-blue-600" />
             <span>
-              <strong>Phone:</strong> {report.phone}
+              <strong>Phone:</strong> {report.userPhone || "Not provided"}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <FiMapPin className="text-blue-600" />
             <span>
-              <strong>Location:</strong> {report.address}
+              <strong>Location:</strong> {report.address || "Not provided"}
             </span>
           </div>
           <div className="flex items-center gap-2">
             <FiClock className="text-blue-600" />
             <span>
               <strong>Submitted:</strong>{" "}
-              {new Date(report.timestamp).toLocaleString()}
+              {report.createdAt
+                ? new Date(report.createdAt).toLocaleString()
+                : "Unknown"}
             </span>
           </div>
         </div>
@@ -96,22 +85,27 @@ export default function ReportModal({ report, onClose }: Props) {
         {/* Message */}
         <div className="mb-6">
           <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-line border-l-4 border-blue-600 pl-4">
-            {report.message}
+            {report.message || "No description provided"}
           </p>
         </div>
 
         {/* Files */}
-        {report.files?.length > 0 && (
+        {report.files && report.files.length > 0 && (
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-2 text-sm font-semibold text-gray-700">
               <FiFileText className="text-blue-600" />
               <span>Attached Files:</span>
             </div>
-            <ul className="list-disc list-inside text-sm text-blue-700">
+            <div className="flex flex-wrap gap-2">
               {report.files.map((file, i) => (
-                <li key={i}>{file}</li>
+                <img
+                  key={i}
+                  src={file}
+                  alt={`evidence-${i}`}
+                  className="w-24 h-24 object-cover rounded-md border"
+                />
               ))}
-            </ul>
+            </div>
           </div>
         )}
 

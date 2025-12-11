@@ -50,9 +50,10 @@ export default function UserDashboard() {
       </div>
 
       {/* Department Grid */}
-      <h2 className="text-2xl font-bold mb-4 text-[#0a1f44]">
+      <h2 className="text-center text-lg sm:text-xl md:text-2xl font-bold mb-3 md:mb-4 text-[#0a1f44]">
         Choose a Department to Report To
       </h2>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-5">
         {departments.map((dept) => (
           <AgencyCard key={dept.slug} {...dept} />

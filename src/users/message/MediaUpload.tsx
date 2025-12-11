@@ -1,4 +1,3 @@
-// src/message/MediaUpload.tsx
 import { FiFilePlus, FiMic, FiMicOff } from "react-icons/fi";
 
 type Props = {
@@ -23,7 +22,7 @@ export default function MediaUpload({
   const isRecordingSupported = typeof MediaRecorder !== "undefined";
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* File Upload */}
       <div>
         <label
@@ -37,7 +36,7 @@ export default function MediaUpload({
           type="file"
           multiple
           onChange={(e) => onFileChange(e.target.files)}
-          className="text-sm text-gray-600 mt-1"
+          className="hidden"
         />
         {files && files.length > 0 && (
           <ul className="mt-2 text-xs text-gray-700 list-disc list-inside">
@@ -55,33 +54,42 @@ export default function MediaUpload({
         </label>
 
         {isRecordingSupported ? (
-          <div className="flex flex-wrap gap-3 items-center mt-2">
-            {!recording ? (
-              <button
-                type="button"
-                onClick={onStartRecording}
-                className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-md text-sm"
-              >
-                <FiMic /> Start
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onStopRecording}
-                className="flex items-center gap-2 px-3 py-1 bg-red-600 text-white rounded-md text-sm"
-              >
-                <FiMicOff /> Stop
-              </button>
-            )}
+          <div className="flex flex-col gap-3 mt-2">
+            <div className="flex gap-3 items-center">
+              {!recording ? (
+                <button
+                  type="button"
+                  onClick={onStartRecording}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md text-sm hover:bg-green-700 transition"
+                >
+                  <FiMic /> Start Recording
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={onStopRecording}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md text-sm hover:bg-red-700 transition"
+                >
+                  <FiMicOff /> Stop Recording
+                </button>
+              )}
 
-            {recording && (
-              <span className="text-xs text-red-600 font-bold animate-pulse">
-                Recording... {recordTime}s
-              </span>
-            )}
+              {recording && (
+                <span className="text-xs text-red-600 font-bold animate-pulse">
+                  Recording... {recordTime}s
+                </span>
+              )}
+            </div>
 
+            {/* Playback after recording */}
             {audioURL && (
-              <audio controls src={audioURL} className="mt-2 w-full rounded" />
+              <div className="mt-2">
+                <audio
+                  controls
+                  src={audioURL}
+                  className="w-full rounded shadow-sm"
+                />
+              </div>
             )}
           </div>
         ) : (
