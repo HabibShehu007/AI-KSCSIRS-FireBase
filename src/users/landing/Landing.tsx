@@ -11,13 +11,14 @@ export default function Landing() {
         loop
         muted
         playsInline
+        preload="auto"
         className="absolute w-full h-full object-cover"
       >
         <source src="/landing-bg.mp4" type="video/mp4" />
       </video>
 
       {/* Overlay */}
-      <div className="absolute inset-0 bg-[#0a1f44]/40 z-10" />
+      <div className="absolute inset-0 bg-[#0a1f44]/50 z-10" />
 
       {/* Hero Content */}
       <div
@@ -43,7 +44,7 @@ export default function Landing() {
             AI-powered Katsina State Community Security and Incident Reporting
             System
           </span>
-          <span className="block">
+          <span className="block font-bold">
             Empowering citizens to report incidents, track resolutions, and
             collaborate with public safety departments in real time.
           </span>
