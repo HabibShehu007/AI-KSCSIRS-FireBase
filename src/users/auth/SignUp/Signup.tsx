@@ -103,30 +103,29 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-900 via-blue-800 to-blue-700 px-4 py-10">
+    <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-900 via-blue-800 to-blue-700 px-3 py-6 relative">
+      {/* 🔙 Back to Home link (outside container, top-left) */}
+      <button
+        onClick={() => navigate("/")}
+        className="absolute top-3 font-bold left-3 text-white text-sm hover:text-gray-200 transition"
+      >
+        ← Home
+      </button>
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md relative"
+        transition={{ duration: 0.3 }}
+        className="bg-white p-6 rounded-lg shadow-lg w-full max-w-sm relative"
       >
-        {/* 🔙 Back to Home link (outside container, top-left) */}
-        <button
-          onClick={() => navigate("/")}
-          className="absolute top-1 left-4 text-blue-800 hover:text-gray-200 transition font-medium"
-        >
-          ← Back to Home
-        </button>
-        <h2 className="text-2xl font-bold text-center text-blue-900 mb-2">
-          Create Your Account
+        <h2 className="text-xl font-bold text-center text-blue-900 mb-4">
+          Create Account
         </h2>
-        <p className="text-sm text-center text-gray-500 mb-6">
-          Step {step} of 3 — Let’s get you started
-        </p>
 
+        {/* Progress bar only, removed distracting step text */}
         <ProgressBar step={step} />
 
-        <form onSubmit={handleSubmit} className="space-y-6 mt-4">
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           {step === 1 && (
             <StepPersonalInfo
               form={form}
@@ -142,12 +141,12 @@ export default function Signup() {
             <StepSecurity form={form} handleChange={handleChange} />
           )}
 
-          <div className="flex justify-between pt-4">
+          <div className="flex justify-between pt-2">
             {step > 1 && (
               <button
                 type="button"
                 onClick={prevStep}
-                className="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition"
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 text-sm"
               >
                 Back
               </button>
@@ -157,7 +156,7 @@ export default function Signup() {
                 type="button"
                 onClick={nextStep}
                 disabled={!isStepValid()}
-                className={`px-6 py-2 rounded-md font-semibold transition ${
+                className={`px-5 py-2 rounded-md text-sm font-semibold transition ${
                   isStepValid()
                     ? "bg-blue-700 text-white hover:bg-blue-800"
                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
@@ -169,7 +168,7 @@ export default function Signup() {
               <button
                 type="submit"
                 disabled={loading}
-                className={`px-6 py-2 rounded-md font-semibold w-full ${
+                className={`px-5 py-2 rounded-md text-sm font-semibold w-full ${
                   loading
                     ? "bg-blue-400 cursor-not-allowed text-white"
                     : "bg-green-600 text-white hover:bg-green-700"
@@ -181,7 +180,7 @@ export default function Signup() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                   >
-                    <motion.div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <motion.div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     Signing up...
                   </motion.div>
                 ) : (
@@ -191,17 +190,18 @@ export default function Signup() {
             )}
           </div>
         </form>
+
         {/* 🔗 Login links (bottom-right inside container) */}
-        <div className="mt-6 text-right">
+        <div className="mt-4 text-right space-x-3">
           <button
             onClick={() => navigate("/user/auth/login")}
-            className="text-sm font-bold text-blue-700 underline hover:text-blue-900 mr-4"
+            className="text-xs font-bold text-blue-700 underline hover:text-blue-900"
           >
-            Already have an account? Login
+            User Login
           </button>
           <button
             onClick={() => navigate("/admin/login")}
-            className="text-sm font-bold text-blue-700 underline hover:text-blue-900"
+            className="text-xs font-bold text-blue-700 underline hover:text-blue-900"
           >
             Admin Login
           </button>
