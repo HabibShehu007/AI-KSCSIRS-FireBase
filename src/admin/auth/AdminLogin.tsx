@@ -26,11 +26,13 @@ export default function AdminLogin() {
   const [showModal, setShowModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false); // ✅ NEW loading state
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage("");
+    setLoading(true); // ✅ start loading
 
     try {
       if (activeTab === "central") {
@@ -95,15 +97,17 @@ export default function AdminLogin() {
       console.error("❌ Login error:", err);
       setErrorMessage("⚠️ Something went wrong. Try again.");
       setShowErrorModal(true);
+    } finally {
+      setLoading(false); // ✅ stop loading
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a1f44]">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md relative">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a1f44] px-4 sm:px-6">
+      <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md relative">
         {/* Logo */}
         <div className="flex justify-center mb-6">
-          <img src={logo} alt="Admin Logo" className="h-20" />
+          <img src={logo} alt="Admin Logo" className="h-16 sm:h-20" />
         </div>
 
         {/* Tabs */}
@@ -111,7 +115,7 @@ export default function AdminLogin() {
           <div className="flex justify-between bg-gray-100 rounded-t overflow-hidden">
             <button
               onClick={() => setActiveTab("central")}
-              className={`w-1/2 py-3 text-center font-semibold transition-all duration-300 ${
+              className={`w-1/2 py-2 sm:py-3 text-center font-semibold transition-all duration-300 ${
                 activeTab === "central" ? "text-[#0a1f44]" : "text-gray-500"
               }`}
             >
@@ -119,7 +123,7 @@ export default function AdminLogin() {
             </button>
             <button
               onClick={() => setActiveTab("department")}
-              className={`w-1/2 py-3 text-center font-semibold transition-all duration-300 ${
+              className={`w-1/2 py-2 sm:py-3 text-center font-semibold transition-all duration-300 ${
                 activeTab === "department" ? "text-[#0a1f44]" : "text-gray-500"
               }`}
             >
@@ -161,35 +165,70 @@ export default function AdminLogin() {
 
           <button
             type="submit"
-            className="w-full bg-[#0a1f44] text-white py-2 rounded-md hover:bg-[#09203b] transition"
+            disabled={loading}
+            className={`w-full py-3 rounded-md transition font-semibold text-sm sm:text-base shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-[#0a1f44] text-white hover:bg-[#09203b]"
+            }`}
           >
-            Login
+            {loading ? (
+              <div className="flex items-center justify-center gap-2">
+                <svg
+                  className="animate-spin h-5 w-5 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8z"
+                  ></path>
+                </svg>
+                Logging in...
+              </div>
+            ) : (
+              "Login"
+            )}
           </button>
         </form>
 
         {/* Success Modal */}
         {showModal && (
-          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg animate-fadeIn">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-[#0a1f44] mb-2">
+          <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center rounded-lg animate-fadeIn">
+            <div className="text-center px-4">
+              <h3 className="text-lg sm:text-xl font-bold text-[#0a1f44] mb-2">
                 Login Successful
               </h3>
-              <p className="text-gray-600">Redirecting to dashboard...</p>
+              <p className="text-gray-600 text-sm sm:text-base">
+                Redirecting to dashboard...
+              </p>
             </div>
           </div>
         )}
 
         {/* Error Modal */}
         {showErrorModal && (
-          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center rounded-lg animate-fadeIn">
-            <div className="text-center">
-              <h3 className="text-xl font-bold text-red-600 mb-2">
+          <div className="absolute inset-0 bg-white bg-opacity-95 flex items-center justify-center rounded-lg animate-fadeIn">
+            <div className="text-center px-4">
+              <h3 className="text-lg sm:text-xl font-bold text-red-600 mb-2">
                 Login Failed
               </h3>
-              <p className="text-gray-600 mb-4">{errorMessage}</p>
+              <p className="text-gray-600 mb-4 text-sm sm:text-base">
+                {errorMessage}
+              </p>
               <button
                 onClick={() => setShowErrorModal(false)}
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition"
+                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm sm:text-base"
               >
                 Try Again
               </button>

@@ -30,10 +30,26 @@ export const listenToComplaints = (
 
   // ✅ Attach listener
   const unsubscribe = onSnapshot(q, (snapshot) => {
-    const complaints: Complaint[] = snapshot.docs.map((doc) => ({
-      id: doc.id, // Firestore IDs are strings
-      ...(doc.data() as Omit<Complaint, "id">),
-    }));
+    const complaints: Complaint[] = snapshot.docs.map((doc) => {
+      const data = doc.data();
+
+      return {
+        id: doc.id,
+        user: data.userName || data.user || "Unknown",
+        email: data.userEmail || data.email || "",
+        phone: data.userPhone || data.phone || "",
+        subject: data.subject,
+        message: data.message,
+        address: data.address,
+        timestamp: data.timestamp || data.createdAt,
+        status: data.status,
+        department: data.department,
+        files: data.files || [],
+        voiceNote: data.voiceNote,
+        reply: data.reply,
+      } as Complaint;
+    });
+
     console.log("📡 Complaints updated:", complaints);
 
     if (callback) {

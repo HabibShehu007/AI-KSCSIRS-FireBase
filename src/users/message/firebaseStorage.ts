@@ -1,18 +1,25 @@
 // src/message/firebaseStorage.ts
 
 import { db } from "../../firebase";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
+import {
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  where,
+  Timestamp,
+} from "firebase/firestore";
 
-// Define the shape of a complaint (same as before, but id will be string from Firestore)
+// Define the shape of a complaint
 export type Complaint = {
-  id: string; // Firestore auto-generated ID
-  user: string;
-  phone?: string;
-  email?: string;
-  subject: string;
+  id: string;
+  user?: string; // normalized from userName
+  email?: string; // normalized from userEmail
+  phone?: string; // normalized from userPhone
+  subject?: string;
   message?: string;
   address?: string;
-  timestamp: number;
+  timestamp?: Timestamp | Date | number | string;
   status: "Pending" | "Investigating" | "Resolved";
   department: string;
   files?: string[];
@@ -28,7 +35,8 @@ export async function saveComplaint(
   await addDoc(collection(db, "complaints"), {
     ...data,
     department,
-    timestamp: new Date().toISOString(),
+    // ✅ Save as Firestore Timestamp
+    timestamp: Timestamp.now(),
   });
 }
 
@@ -39,8 +47,25 @@ export async function getComplaints(department: string): Promise<Complaint[]> {
     where("department", "==", department)
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map((doc) => ({
-    ...(doc.data() as Complaint),
-    id: doc.id,
-  }));
+
+  return snapshot.docs.map((doc) => {
+    const data = doc.data();
+
+    return {
+      id: doc.id,
+      // ✅ Normalize Firestore fields to match Complaint type
+      user: data.userName || data.user || "Unknown",
+      email: data.userEmail || data.email || "",
+      phone: data.userPhone || data.phone || "",
+      subject: data.subject,
+      message: data.message,
+      address: data.address,
+      timestamp: data.timestamp || data.createdAt,
+      status: data.status,
+      department: data.department,
+      files: data.files || [],
+      voiceNote: data.voiceNote,
+      reply: data.reply,
+    } as Complaint;
+  });
 }

@@ -31,7 +31,22 @@ export default function PoliceComplaintDetails() {
       const ref = doc(db, "complaints", id);
       const snap = await getDoc(ref);
       if (snap.exists()) {
-        setComplaint({ ...(snap.data() as Complaint), id: snap.id });
+        const data = snap.data();
+        setComplaint({
+          id: snap.id,
+          user: data.userName || data.user || "Unknown",
+          email: data.userEmail || data.email || "",
+          phone: data.userPhone || data.phone || "",
+          subject: data.subject,
+          message: data.message,
+          address: data.address,
+          timestamp: data.timestamp || data.createdAt,
+          status: data.status,
+          department: data.department,
+          files: data.files || [],
+          voiceNote: data.voiceNote,
+          reply: data.reply,
+        } as Complaint);
       } else {
         setComplaint(null);
       }
@@ -82,7 +97,7 @@ export default function PoliceComplaintDetails() {
             <FiMessageSquare className="text-blue-600" /> Message
           </h3>
           <p className="text-gray-800 text-lg font-medium bg-gray-50 p-4 rounded-lg shadow-inner">
-            {complaint.message}
+            {complaint.message || "No message provided."}
           </p>
 
           <p className="text-sm text-gray-600">
@@ -115,6 +130,7 @@ export default function PoliceComplaintDetails() {
             )}
           </div>
         </div>
+
         {/* Right: Info */}
         <div className="space-y-6 text-gray-800 text-lg">
           <h3 className="text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
@@ -123,22 +139,27 @@ export default function PoliceComplaintDetails() {
 
           <p className="flex items-center gap-2">
             <FiUser className="text-blue-700" />{" "}
-            <span className="font-bold">User:</span> {complaint.user} (
-            {complaint.phone})
+            <span className="font-bold">User:</span>{" "}
+            {complaint.user || "Unknown"} ({complaint.phone || "N/A"})
           </p>
           <p className="flex items-center gap-2">
             <FiMail className="text-yellow-600" />{" "}
-            <span className="font-bold">Email:</span> {complaint.email}
+            <span className="font-bold">Email:</span>{" "}
+            {complaint.email || "No Email"}
           </p>
           <p className="flex items-center gap-2">
             <FiMapPin className="text-red-600" />{" "}
-            <span className="font-bold">Address:</span> {complaint.address}
+            <span className="font-bold">Address:</span>{" "}
+            {complaint.address || "No Address"}
           </p>
           <p className="flex items-center gap-2">
             <FiClock className="text-gray-600" />{" "}
             <span className="font-bold">Received:</span>{" "}
             {complaint.timestamp
-              ? new Date(Number(complaint.timestamp)).toLocaleString()
+              ? typeof complaint.timestamp === "object" &&
+                "toDate" in complaint.timestamp
+                ? complaint.timestamp.toDate().toLocaleString()
+                : new Date(Number(complaint.timestamp)).toLocaleString()
               : "N/A"}
           </p>
 
@@ -197,7 +218,6 @@ export default function PoliceComplaintDetails() {
               </ul>
             </div>
           )}
-
           {/* Status Buttons */}
           <div className="flex flex-wrap gap-4 mt-6">
             <button
