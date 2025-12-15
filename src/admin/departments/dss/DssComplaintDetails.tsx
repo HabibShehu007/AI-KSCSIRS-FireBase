@@ -1,8 +1,8 @@
 // src/admin/departments/dss/DssComplaintDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
-import type { Complaint } from "../../../users/message/firebaseStorage"; // ✅ use the new Complaint type
-import { db } from "../../../firebase"; // ✅ your Firebase config
+import type { Complaint } from "../../../users/message/firebaseStorage";
+import { db } from "../../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import {
   FiUser,
@@ -18,20 +18,35 @@ import {
 } from "react-icons/fi";
 
 export default function DssComplaintDetails() {
-  const { id } = useParams(); // Firestore doc ID is a string
+  const { id } = useParams();
   const navigate = useNavigate();
   const [complaint, setComplaint] = useState<Complaint | null>(null);
   const [reply, setReply] = useState("");
   const [isResolved, setIsResolved] = useState(false);
 
-  // ✅ Fetch complaint from Firestore
+  // ✅ Fetch complaint
   useEffect(() => {
     if (!id) return;
     const fetchComplaint = async () => {
       const ref = doc(db, "complaints", id);
       const snap = await getDoc(ref);
       if (snap.exists()) {
-        setComplaint({ ...(snap.data() as Complaint), id: snap.id });
+        const data = snap.data();
+        setComplaint({
+          id: snap.id,
+          user: data.userName || data.user || "Unknown",
+          email: data.userEmail || data.email || "",
+          phone: data.userPhone || data.phone || "",
+          subject: data.subject,
+          message: data.message,
+          address: data.address,
+          timestamp: data.timestamp || data.createdAt,
+          status: data.status,
+          department: data.department,
+          files: data.files || [],
+          voiceNote: data.voiceNote,
+          reply: data.reply,
+        } as Complaint);
       } else {
         setComplaint(null);
       }
@@ -39,7 +54,7 @@ export default function DssComplaintDetails() {
     fetchComplaint();
   }, [id]);
 
-  // ✅ Update complaint in Firestore
+  // ✅ Update complaint
   const updateComplaint = async (updates: Partial<Complaint>) => {
     if (!complaint || !id) return;
     const ref = doc(db, "complaints", id);
@@ -59,98 +74,100 @@ export default function DssComplaintDetails() {
 
   if (!complaint) {
     return (
-      <div className="text-gray-600 text-center py-12 text-lg font-semibold">
-        Complaint not found.
+      <div className="flex flex-col items-center justify-center py-12 text-gray-600">
+        <FiAlertCircle className="text-5xl text-red-500 mb-4" />
+        <p className="text-lg font-semibold">Complaint not found.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-8">
-      {/* Page Title */}
-      <h2 className="text-4xl font-extrabold text-[#0a1f44] tracking-tight flex items-center gap-3">
-        <FiAlertCircle className="text-red-600 text-3xl animate-bounce" />
-        DSS Complaint Details
+    <div className="space-y-8 px-4 sm:px-6 lg:px-8">
+      {/* Title */}
+      <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0a1f44] tracking-tight flex items-center gap-3">
+        <FiAlertCircle className="text-red-600 text-2xl sm:text-3xl animate-bounce" />
+        Complaint Details
       </h2>
 
-      {/* Two-column layout */}
-      <div className="bg-white p-8 rounded-2xl shadow-xl grid md:grid-cols-2 gap-8">
-        {/* Left Side: Message */}
+      {/* Layout */}
+      <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl grid grid-cols-1 md:grid-cols-2 gap-10">
+        {/* Left: Message + Reply */}
         <div className="space-y-6">
-          <h3 className="text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
+          <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
             <FiMessageSquare className="text-blue-600" /> Message
           </h3>
-          <p className="text-gray-800 text-lg font-medium bg-gray-50 p-4 rounded-lg shadow-inner">
-            {complaint.message}
+          <p className="text-gray-800 text-base sm:text-lg font-medium bg-gray-50 p-4 rounded-lg shadow-inner leading-relaxed">
+            {complaint.message || "No message provided."}
           </p>
 
-          <div>
+          <p className="text-sm text-gray-600">
             <span className="font-bold">Subject:</span>{" "}
-            <span className="font-semibold">{complaint.subject}</span>
-          </div>
+            {complaint.subject || "No subject"}
+          </p>
 
-          {/* Reply Box */}
-          <div className="mt-6">
-            <label className="font-bold mb-2 text-[#0a1f44] text-lg flex items-center gap-2">
+          {/* Reply */}
+          <div className="mt-6 space-y-4">
+            <label className="font-bold text-[#0a1f44] text-lg flex items-center gap-2">
               <FiMessageSquare /> Reply
             </label>
             <textarea
               value={reply}
               onChange={(e) => setReply(e.target.value)}
               rows={4}
-              className="w-full border rounded-lg p-3 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border rounded-lg p-3 text-gray-800 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               placeholder="Type your response here..."
             />
+            <button
+              onClick={handleReply}
+              className="w-full sm:w-auto bg-blue-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-800 transition transform hover:scale-105 shadow-md flex items-center justify-center gap-2"
+            >
+              <FiCheckCircle /> Send Reply & Resolve
+            </button>
+            {isResolved && (
+              <p className="text-green-600 font-bold animate-pulse text-base sm:text-lg">
+                Complaint marked as resolved. Redirecting...
+              </p>
+            )}
           </div>
-
-          <button
-            onClick={handleReply}
-            className="bg-blue-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-blue-800 transition transform hover:scale-105 mt-4 shadow-md"
-          >
-            Send Reply & Mark as Resolved
-          </button>
-
-          {isResolved && (
-            <p className="text-green-600 font-bold mt-4 animate-pulse text-lg">
-              Complaint marked as resolved. Redirecting to inbox...
-            </p>
-          )}
         </div>
 
-        {/* Right Side: Info */}
-        <div className="space-y-6 text-gray-800 text-lg">
-          <h3 className="text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
+        {/* Right: Info */}
+        <div className="space-y-6 text-gray-800 text-base sm:text-lg">
+          <h3 className="text-xl sm:text-2xl font-bold flex items-center gap-2 text-[#0a1f44]">
             <FiFileText className="text-blue-600" /> Complaint Info
           </h3>
 
           <p className="flex items-center gap-2">
-            <FiUser className="text-blue-700 text-xl" />
+            <FiUser className="text-blue-700" />
             <span className="font-bold">User:</span>{" "}
-            <span className="font-semibold">{complaint.user}</span> (
-            {complaint.phone})
+            {complaint.user || "Unknown"} ({complaint.phone || "N/A"})
           </p>
           <p className="flex items-center gap-2">
-            <FiMail className="text-yellow-600 text-xl" />
+            <FiMail className="text-yellow-600" />
             <span className="font-bold">Email:</span>{" "}
-            <span className="font-semibold">{complaint.email}</span>
+            {complaint.email || "No Email"}
           </p>
           <p className="flex items-center gap-2">
-            <FiMapPin className="text-red-600 text-xl" />
+            <FiMapPin className="text-red-600" />
             <span className="font-bold">Address:</span>{" "}
-            <span className="font-semibold">{complaint.address}</span>
+            {complaint.address || "No Address"}
           </p>
           <p className="flex items-center gap-2">
-            <FiClock className="text-gray-600 text-xl" />
+            <FiClock className="text-gray-600" />
             <span className="font-bold">Received:</span>{" "}
-            <span className="font-semibold">
-              {new Date(Number(complaint.timestamp)).toLocaleString()}
-            </span>
+            {complaint.timestamp
+              ? typeof complaint.timestamp === "object" &&
+                "toDate" in complaint.timestamp
+                ? complaint.timestamp.toDate().toLocaleString()
+                : new Date(Number(complaint.timestamp)).toLocaleString()
+              : "N/A"}
           </p>
 
-          <p>
-            <span className="font-bold">Status:</span>{" "}
+          {/* Status */}
+          <p className="flex items-center gap-2">
+            <span className="font-bold">Status:</span>
             <span
-              className={`px-3 py-1 rounded-full text-white text-sm font-bold uppercase tracking-wide ${
+              className={`flex items-center gap-2 px-3 py-1 rounded-full text-white text-xs sm:text-sm font-bold uppercase tracking-wide ${
                 complaint.status === "Resolved"
                   ? "bg-green-600 animate-pulse"
                   : complaint.status === "Investigating"
@@ -158,6 +175,9 @@ export default function DssComplaintDetails() {
                   : "bg-yellow-500"
               }`}
             >
+              {complaint.status === "Resolved" && <FiCheckCircle />}
+              {complaint.status === "Investigating" && <FiSearch />}
+              {complaint.status === "Pending" && <FiAlertCircle />}
               {complaint.status}
             </span>
           </p>
@@ -166,7 +186,7 @@ export default function DssComplaintDetails() {
           {complaint.voiceNote && (
             <div>
               <span className="font-bold flex items-center gap-2 text-[#0a1f44]">
-                <FiMic /> Voice Note:
+                <FiMic /> Voice Note
               </span>
               <audio
                 controls
@@ -180,35 +200,44 @@ export default function DssComplaintDetails() {
           {complaint.files && complaint.files.length > 0 && (
             <div>
               <span className="font-bold flex items-center gap-2 text-[#0a1f44]">
-                <FiFileText /> Files:
+                <FiFileText /> Files
               </span>
-              <ul className="list-disc ml-6 text-blue-700 font-semibold">
+              <ul className="list-disc ml-6 text-blue-700 font-semibold space-y-1">
                 {complaint.files.map((f, i) => (
-                  <li key={i}>{f}</li>
+                  <li key={i}>
+                    <a
+                      href={f}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:underline wrap-break-words"
+                    >
+                      {f}
+                    </a>
+                  </li>
                 ))}
               </ul>
             </div>
           )}
 
           {/* Status Buttons */}
-          <div className="flex flex-wrap gap-4 mt-6">
+          <div className="flex flex-col sm:flex-row flex-wrap gap-4 mt-6">
             <button
               onClick={() => handleStatusChange("Pending")}
-              className="flex items-center gap-2 px-5 py-2 bg-yellow-500 text-white rounded-lg font-bold hover:bg-yellow-600 transition transform hover:scale-105"
+              className="flex items-center gap-2 px-5 py-2 bg-yellow-500 text-white rounded-lg font-bold hover:bg-yellow-600 transition transform hover:scale-105 w-full sm:w-auto justify-center"
             >
-              <FiClock className="text-lg" /> Pending
+              <FiClock /> Pending
             </button>
             <button
               onClick={() => handleStatusChange("Investigating")}
-              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition transform hover:scale-105"
+              className="flex items-center gap-2 px-5 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition transform hover:scale-105 w-full sm:w-auto justify-center"
             >
-              <FiSearch className="text-lg" /> Investigating
+              <FiSearch /> Investigating
             </button>
             <button
               onClick={() => handleStatusChange("Resolved")}
-              className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition transform hover:scale-105"
+              className="flex items-center gap-2 px-5 py-2 bg-green-600 text-white rounded-lg font-bold hover:bg-green-700 transition transform hover:scale-105 w-full sm:w-auto justify-center"
             >
-              <FiCheckCircle className="text-lg" /> Resolved
+              <FiCheckCircle /> Resolved
             </button>
           </div>
         </div>

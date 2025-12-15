@@ -1,4 +1,4 @@
-// src/admin/departments/vigilante/VigilanteComplaintInbox.tsx
+// src/admin/departments/immigration/immigrationComplaintInbox.tsx
 import type { Complaint } from "../../../users/message/firebaseStorage";
 import { Link } from "react-router-dom";
 import {
@@ -15,8 +15,8 @@ type Props = {
   complaints?: Complaint[];
 };
 
-export default function VigilanteComplaintInbox({ complaints = [] }: Props) {
-  console.log("📨 VigilanteComplaintInbox received complaints:", complaints);
+export default function ImmigrationComplaintInbox({ complaints = [] }: Props) {
+  console.log("📨 Immigration ComplaintInbox received complaints:", complaints);
 
   // ✅ Sort complaints by timestamp (newest first)
   const sorted = [...complaints].sort(
@@ -33,7 +33,7 @@ export default function VigilanteComplaintInbox({ complaints = [] }: Props) {
       ) : (
         sorted.map((c) => (
           <Link
-            to={`/admin/vigilante/complaint/${c.id}`}
+            to={`/admin/immigration/complaint/${c.id}`}
             key={c.id}
             className="block"
           >

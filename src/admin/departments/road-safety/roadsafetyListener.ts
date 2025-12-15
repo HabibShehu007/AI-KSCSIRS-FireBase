@@ -1,17 +1,20 @@
+// src/admin/road-safety/roadsafetyListener.ts
 import { listenToComplaints } from "../../../users/message/firebaseListener";
 import type { Complaint } from "../../../users/message/firebaseStorage";
 
-export function joinVigilanteRoom(
+export function joinRoadSafetyRoom(
   onReceive: (complaints: Complaint[], newest?: Complaint) => void
 ) {
-  console.log("Listening to Vigilante Complain via Firestore");
+  console.log("📡 Listening to Road-Safety complaints via Firestore");
 
   let lastSeenId: string | null = null;
 
-  const unsubscribe = listenToComplaints("vigilante", (complaints) => {
+  const unsubscribe = listenToComplaints("roadsafety", (complaints) => {
+    // Sort complaints by timestamp (newest first)
     const sorted = [...complaints].sort(
       (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
     );
+
     // Determine newest complaint
     const newest = sorted.length > 0 ? sorted[0] : undefined;
 
@@ -21,11 +24,13 @@ export function joinVigilanteRoom(
       fresh = newest;
       lastSeenId = newest.id;
     }
-    console.log("📥 Vigilante complaints updated:", sorted);
+
+    console.log("📥 RoadSafety complaints updated:", sorted);
     onReceive(sorted, fresh);
   });
+
   return () => {
-    console.log("🧹 Stopped listening to Vigilante complaints");
+    console.log("🧹 Stopped listening to RoadSafety complaints");
     unsubscribe();
   };
 }

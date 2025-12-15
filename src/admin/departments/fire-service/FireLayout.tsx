@@ -1,6 +1,7 @@
+// src/admin/fire/fireLayout.tsx
 import { useRef, useState, useEffect } from "react";
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { joinDssRoom } from "./dssListener"; // ✅ DSS listener, same pattern as policeListener
+import { joinFireServiceRoom } from "./fireListener";
 import {
   FiHome,
   FiSettings,
@@ -14,27 +15,30 @@ import {
   FiUser,
 } from "react-icons/fi";
 
-export default function DssLayout() {
+export default function FireLayout() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isMuted, setIsMuted] = useState(() => {
-    return localStorage.getItem("dss-muted") === "true";
+    return localStorage.getItem("fireservice-muted") === "true";
   });
   const [hasNewMessage, setHasNewMessage] = useState(false);
   const [newestComplaintId, setNewestComplaintId] = useState<string | null>(
     null
   );
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false); // ✅ mobile nav toggle
   const navigate = useNavigate();
 
   const toggleMute = () => {
     const next = !isMuted;
     setIsMuted(next);
-    localStorage.setItem("dss-muted", String(next));
+    localStorage.setItem("fireservice-muted", String(next));
   };
 
   useEffect(() => {
-    const unsubscribe = joinDssRoom((complaints, newest) => {
-      localStorage.setItem("complaints-dss", JSON.stringify(complaints));
+    const unsubscribe = joinFireServiceRoom((complaints, newest) => {
+      localStorage.setItem(
+        "complaints-fireservice",
+        JSON.stringify(complaints)
+      );
 
       if (newest && newest.id !== newestComplaintId) {
         setHasNewMessage(true);
@@ -52,30 +56,30 @@ export default function DssLayout() {
   const handleEngage = () => {
     setHasNewMessage(false);
     if (newestComplaintId) {
-      navigate(`/admin/dss/complaint/${newestComplaintId}`);
+      navigate(`/admin/fireservice/complaint/${newestComplaintId}`);
     } else {
-      navigate("/admin/dss/inbox");
+      navigate("/admin/fireservice/inbox");
     }
   };
 
   const NavLinks = () => (
     <nav className="flex-1 p-4 space-y-2">
       <Link
-        to="/admin/dss"
+        to="/admin/fireservice"
         className="flex items-center gap-2 py-2 px-3 rounded hover:bg-[#09203b]"
         onClick={() => setMobileOpen(false)}
       >
         <FiHome /> Dashboard
       </Link>
       <Link
-        to="/admin/dss/analytics"
+        to="/admin/fireservice/analytics"
         className="flex items-center gap-2 py-2 px-3 rounded hover:bg-[#09203b]"
         onClick={() => setMobileOpen(false)}
       >
         <FiBarChart2 /> Analytics
       </Link>
       <Link
-        to="/admin/dss/settings"
+        to="/admin/fireservice/settings"
         className="flex items-center gap-2 py-2 px-3 rounded hover:bg-[#09203b]"
         onClick={() => setMobileOpen(false)}
       >
@@ -89,7 +93,7 @@ export default function DssLayout() {
       {/* Sidebar (desktop only) */}
       <aside className="hidden md:flex w-64 bg-[#0a1f44] text-white flex-col">
         <div className="p-4 text-xl font-bold border-b border-gray-700">
-          DSS Portal
+          Fire-Service Portal
         </div>
         <NavLinks />
       </aside>
@@ -98,16 +102,17 @@ export default function DssLayout() {
       {mobileOpen && (
         <div
           className="fixed inset-0 z-50 md:hidden flex"
-          onClick={() => setMobileOpen(false)}
+          onClick={() => setMobileOpen(false)} // ✅ clicking outside closes
         >
+          {/* Sidebar panel */}
           <div
             className={`w-64 bg-[#0a1f44] text-white h-full flex flex-col transform transition-transform duration-300 ease-in-out ${
               mobileOpen ? "translate-x-0" : "-translate-x-full"
             }`}
-            onClick={(e) => e.stopPropagation()}
+            onClick={(e) => e.stopPropagation()} // ✅ prevent closing when clicking inside
           >
             <div className="flex justify-between items-center p-4 border-b border-gray-700">
-              <span className="text-xl font-bold">DSS Portal</span>
+              <span className="text-xl font-bold">Fire-Service Portal</span>
               <button onClick={() => setMobileOpen(false)}>
                 <FiX className="text-2xl" />
               </button>
@@ -122,16 +127,19 @@ export default function DssLayout() {
         <header className="flex justify-between items-center p-3 sm:p-4 bg-white shadow">
           {/* Left side: menu + user icon */}
           <div className="flex items-center gap-3">
+            {/* Mobile menu button */}
             <button
               className="md:hidden p-2 rounded bg-gray-200 hover:bg-gray-300"
               onClick={() => setMobileOpen(true)}
             >
               <FiMenu className="text-lg sm:text-xl text-[#0a1f44]" />
             </button>
+
+            {/* User icon */}
             <div className="flex items-center">
               <FiUser className="text-2xl sm:text-3xl text-blue-900" />
               <span className="hidden sm:inline text-sm font-semibold text-blue-900 ml-2">
-                DSS Admin
+                Fire-Service Admin
               </span>
             </div>
           </div>

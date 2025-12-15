@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import type { Complaint } from "../../../users/message/firebaseStorage";
-import { joinVigilanteRoom } from "./vigilanteListener"; // ✅ Vigilante listener, same pattern as policeListener
+import { joinFireServiceRoom } from "./fireListener";
 import { Link, useNavigate } from "react-router-dom";
 import NewMessageOverlay from "./NewMessageOverlay";
 import { Timestamp } from "firebase/firestore";
 
-export default function VigilantePortal() {
+export default function FirePortal() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
   const [newestComplaint, setNewestComplaint] = useState<Complaint | null>(
     null
@@ -15,26 +15,26 @@ export default function VigilantePortal() {
 
   // Load cached complaints
   useEffect(() => {
-    const stored = localStorage.getItem("complaints-vigilante");
+    const stored = localStorage.getItem("complaints-fireservice");
     const list: Complaint[] = stored ? JSON.parse(stored) : [];
     setComplaints(list);
   }, []);
 
   // Subscribe to Firestore complaints
   useEffect(() => {
-    const unsubscribe = joinVigilanteRoom((incoming, newest) => {
+    const unsubscribe = joinFireServiceRoom((incoming, newest) => {
       const updated = [...incoming].sort(
         (a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0)
       );
 
-      localStorage.setItem("complaints-vigilante", JSON.stringify(updated));
+      localStorage.setItem("complaints-fireservice", JSON.stringify(updated));
       setComplaints(updated);
 
-      const lastSeenId = localStorage.getItem("lastSeenComplaintId-vigilante");
+      const lastSeenId = localStorage.getItem("lastSeenComplaintId");
       if (newest && newest.id !== lastSeenId) {
         setNewestComplaint(newest);
         setShowOverlay(true);
-        localStorage.setItem("lastSeenComplaintId-vigilante", newest.id);
+        localStorage.setItem("lastSeenComplaintId", newest.id);
       }
     });
 
@@ -48,7 +48,7 @@ export default function VigilantePortal() {
     <div className="p-4 sm:p-6">
       {/* Heading */}
       <h1 className="text-2xl sm:text-3xl md:text-5xl font-extrabold text-[#0a1f44] mb-4 sm:mb-6 md:mb-10 tracking-tight text-center">
-        Vigilante Department Portal
+        Fire-Service Department Portal
       </h1>
 
       {/* Summary Cards */}
@@ -134,7 +134,7 @@ export default function VigilantePortal() {
                 {c.status}
               </span>
               <Link
-                to={`/admin/vigilante/complaint/${c.id}`}
+                to={`/admin/fire-service/complaint/${c.id}`}
                 className="text-[11px] sm:text-xs font-medium text-blue-600 hover:underline"
               >
                 View
@@ -149,7 +149,7 @@ export default function VigilantePortal() {
         <NewMessageOverlay
           onEngage={() => {
             setShowOverlay(false);
-            navigate(`/admin/vigilante/complaint/${newestComplaint.id}`);
+            navigate(`/admin/fire-service/complaint/${newestComplaint.id}`);
           }}
         />
       )}

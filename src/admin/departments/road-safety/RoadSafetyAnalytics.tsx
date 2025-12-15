@@ -1,4 +1,3 @@
-// src/admin/departments/dss/DssAnalytics.tsx
 import { useEffect, useState } from "react";
 import {
   PieChart,
@@ -14,22 +13,23 @@ import {
   Line,
 } from "recharts";
 import type { Complaint } from "../../../users/message/firebaseStorage";
-import { joinDssRoom } from "./dssListener"; // ✅ DSS listener, same pattern as policeListener
+import { listenToComplaints } from "../../../users/message/firebaseListener";
 
 const COLORS = ["#0088FE", "#FF8042", "#00C49F"];
 
-export default function DssAnalytics() {
+export default function RoadSafetyAnalytics() {
   const [complaints, setComplaints] = useState<Complaint[]>([]);
 
-  // ✅ Subscribe to Firestore complaints for DSS department
   useEffect(() => {
-    const unsubscribe = joinDssRoom((incoming) => {
-      setComplaints(incoming);
-    });
+    const unsubscribe = listenToComplaints(
+      "roadsafety",
+      (incoming: Complaint[]) => {
+        setComplaints(incoming);
+      }
+    );
     return () => unsubscribe();
   }, []);
 
-  // Pie chart: status distribution
   const statusData = [
     {
       name: "Resolved",
@@ -45,24 +45,21 @@ export default function DssAnalytics() {
     },
   ];
 
-  // Bar chart: offense type counts (group by subject)
   const offenseMap: Record<string, number> = {};
   complaints.forEach((c) => {
-    const key = c.subject || "Unknown"; // ✅ fallback to avoid undefined index
+    const key = c.subject || "Unknown"; // fallback to a safe string
     offenseMap[key] = (offenseMap[key] || 0) + 1;
   });
+
   const offenseData = Object.entries(offenseMap).map(([title, count]) => ({
     title,
     count,
   }));
 
-  // Line chart: complaints per day
   const dateMap: Record<string, number> = {};
   complaints.forEach((c) => {
-    if (c.timestamp) {
-      const date = new Date(Number(c.timestamp)).toLocaleDateString();
-      dateMap[date] = (dateMap[date] || 0) + 1;
-    }
+    const date = new Date(Number(c.timestamp)).toLocaleDateString();
+    dateMap[date] = (dateMap[date] || 0) + 1;
   });
   const dateData = Object.entries(dateMap).map(([date, count]) => ({
     date,
@@ -72,7 +69,7 @@ export default function DssAnalytics() {
   return (
     <div className="space-y-10 px-4 sm:px-6 lg:px-8 py-6">
       <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-[#0a1f44] text-center mb-6">
-        DSS Complaint Analytics
+        Road-Safety Complaint Analytics
       </h2>
 
       {/* Responsive grid for charts */}

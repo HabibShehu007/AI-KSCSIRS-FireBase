@@ -25,6 +25,7 @@ import PolicePortal from "./admin/departments/police/PolicePortal";
 import PoliceComplaintInbox from "./admin/departments/police/PoliceComplaintInbox";
 import PoliceComplaintDetails from "./admin/departments/police/PoliceComplaintDetails";
 import PoliceAnalytics from "./admin/departments/police/PoliceAnalytics";
+import PoliceSettings from "./admin/departments/police/PoliceSettings";
 
 // Dss department portal imports
 import DssLayout from "./admin/departments/dss/DssLayout";
@@ -32,6 +33,7 @@ import DssPortal from "./admin/departments/dss/DssPortal";
 import DssComplaintInbox from "./admin/departments/dss/DssComplaintInbox";
 import DssComplaintDetails from "./admin/departments/dss/DssComplaintDetails";
 import DssAnalytics from "./admin/departments/dss/DssAnalytics";
+import DssSettings from "./admin/departments/dss/DssSettings";
 
 //Civil Defence department portal imports
 import CivilDefenceLayout from "./admin/departments/civil-defence/CivilDefenceLayout";
@@ -48,6 +50,38 @@ import VigilanteComplaintInbox from "./admin/departments/vigilante/VigilanteComp
 import VigilanteComplaintDetails from "./admin/departments/vigilante/VigilanteComplaintDetails";
 import VigilanteAnalytics from "./admin/departments/vigilante/VigilanteAnalytics";
 import VigilanteSettings from "./admin/departments/vigilante/VigilanteSettings";
+
+// Road-Safety
+import RoadSafetyLayout from "./admin/departments/road-safety/RoadSafetyLayout";
+import RoadSafetyPortal from "./admin/departments/road-safety/RoadSafetyPortal";
+import RoadSafetyComplaintInbox from "./admin/departments/road-safety/RoadSafetyComplaintInbox";
+import RoadSafetyComplaintDetails from "./admin/departments/road-safety/RoadSafetyComplainDetails";
+import RoadSafetyAnalytics from "./admin/departments/road-safety/RoadSafetyAnalytics";
+import RoadSafetySettings from "./admin/departments/road-safety/RoadSafetySettings";
+
+// Fire Service Imports
+import FireLayout from "./admin/departments/fire-service/FireLayout";
+import FirePortal from "./admin/departments/fire-service/FirePortal";
+import FireComplaintInbox from "./admin/departments/fire-service/FireComplaintInbox";
+import FireComplaintDetails from "./admin/departments/fire-service/FireComplaintDetails";
+import FireAnalytics from "./admin/departments/fire-service/FireAnalysis";
+import FireSettings from "./admin/departments/fire-service/FireSettings";
+
+// Immigration Imports
+import ImmigrationLayout from "./admin/departments/immigration/ImmigrationLayout";
+import ImmigrationPortal from "./admin/departments/immigration/ImmigrationPortal";
+import ImmigrationComplaintInbox from "./admin/departments/immigration/ImmigrationComplaintInbox";
+import ImmigrationComplaintDetails from "./admin/departments/immigration/ImmigrationComplaintDetails";
+import ImmigrationAnalytics from "./admin/departments/immigration/ImmigrationAnalytics";
+import ImmigrationSettings from "./admin/departments/immigration/ImmigrationSettings";
+
+// EFCC Imports
+import EfccLayout from "./admin/departments/efcc/EfccLayout";
+import EfccPortal from "./admin/departments/efcc/EfccPortal";
+import EfccComplaintInbox from "./admin/departments/efcc/EfccComplaintInbox";
+import EfccComplaintDetails from "./admin/departments/efcc/EfccComplaintDetails";
+import EfccAnalytics from "./admin/departments/efcc/EfccAnalytics";
+import EfccSettings from "./admin/departments/efcc/EfccSettings";
 
 const App = () => {
   return (
@@ -89,6 +123,7 @@ const App = () => {
           />
           <Route path="complaint/:id" element={<PoliceComplaintDetails />} />
           <Route path="analytics" element={<PoliceAnalytics />} />
+          <Route path="settings" element={<PoliceSettings />} />
         </Route>
 
         {/* Dss admin portal routes */}
@@ -98,6 +133,7 @@ const App = () => {
           <Route path="inbox" element={<DssComplaintInbox />} />
           <Route path="complaint/:id" element={<DssComplaintDetails />} />
           <Route path="analytics" element={<DssAnalytics />} />
+          <Route path="settings" element={<DssSettings />} />
         </Route>
 
         {/* Civil Defence admin portal routes */}
@@ -120,6 +156,52 @@ const App = () => {
           <Route path="complaint/:id" element={<VigilanteComplaintDetails />} />
           <Route path="analytics" element={<VigilanteAnalytics />} />
           <Route path="settings" element={<VigilanteSettings />} />
+        </Route>
+
+        {/* Road Safety Portal Routes */}
+        <Route path="/admin/roadsafety" element={<RoadSafetyLayout />}>
+          <Route index element={<RoadSafetyPortal />} />
+          <Route path="dashboard" element={<RoadSafetyPortal />} />
+          <Route path="inbox" element={<RoadSafetyComplaintInbox />} />
+          <Route
+            path="complaint/:id"
+            element={<RoadSafetyComplaintDetails />}
+          />
+          <Route path="analytics" element={<RoadSafetyAnalytics />} />
+          <Route path="settings" element={<RoadSafetySettings />} />
+        </Route>
+
+        {/* Fire Service Portal Routes */}
+        <Route path="/admin/fireservice" element={<FireLayout />}>
+          <Route index element={<FirePortal />} />
+          <Route path="dashboard" element={<FirePortal />} />
+          <Route path="inbox" element={<FireComplaintInbox />} />
+          <Route path="complaint/:id" element={<FireComplaintDetails />} />
+          <Route path="analytics" element={<FireAnalytics />} />
+          <Route path="settings" element={<FireSettings />} />
+        </Route>
+
+        {/* Immigration portal Routes */}
+        <Route path="/admin/dss" element={<ImmigrationLayout />}>
+          <Route index element={<ImmigrationLayout />} />
+          <Route path="dashboard" element={<ImmigrationPortal />} />
+          <Route path="inbox" element={<ImmigrationComplaintInbox />} />
+          <Route
+            path="complaint/:id"
+            element={<ImmigrationComplaintDetails />}
+          />
+          <Route path="analytics" element={<ImmigrationAnalytics />} />
+          <Route path="settings" element={<ImmigrationSettings />} />
+        </Route>
+
+        {/* EFCC Portal Routes */}
+        <Route path="/admin/efcc" element={<EfccLayout />}>
+          <Route index element={<EfccPortal />} />
+          <Route path="dashboard" element={<EfccPortal />} />
+          <Route path="inbox" element={<EfccComplaintInbox />} />
+          <Route path="complaint/:id" element={<EfccComplaintDetails />} />
+          <Route path="analytics" element={<EfccAnalytics />} />
+          <Route path="settings" element={<EfccSettings />} />
         </Route>
 
         {/* Fallback route */}

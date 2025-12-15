@@ -1,4 +1,4 @@
-// src/admin/departments/police/PoliceComplaintDetails.tsx
+// src/admin/departments/fire/fireComplaintDetails.tsx
 import { useParams, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import type { Complaint } from "../../../users/message/firebaseStorage";
@@ -17,7 +17,7 @@ import {
 import { db } from "../../../firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 
-export default function PoliceComplaintDetails() {
+export default function FireComplaintDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [complaint, setComplaint] = useState<Complaint | null>(null);
@@ -65,7 +65,7 @@ export default function PoliceComplaintDetails() {
   const handleReply = async () => {
     await updateComplaint({ reply, status: "Resolved" });
     setIsResolved(true);
-    setTimeout(() => navigate("/admin/police/inbox"), 1500);
+    setTimeout(() => navigate("/admin/fireservice/inbox"), 1500);
   };
 
   const handleStatusChange = async (status: Complaint["status"]) => {
