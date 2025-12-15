@@ -199,12 +199,6 @@ export default function Signup() {
           >
             User Login
           </button>
-          <button
-            onClick={() => navigate("/admin/login")}
-            className="text-xs font-bold text-blue-700 underline hover:text-blue-900"
-          >
-            Admin Login
-          </button>
         </div>
 
         {/* ✅ Success Modal */}

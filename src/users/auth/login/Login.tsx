@@ -133,15 +133,6 @@ export default function Login() {
             )}
           </button>
         </form>
-
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => navigate("/admin/login")}
-            className="text-sm text-blue-700 underline hover:text-blue-900"
-          >
-            Go to Admin Portal
-          </button>
-        </div>
       </motion.div>
 
       {/* 🔔 Animated Modal */}

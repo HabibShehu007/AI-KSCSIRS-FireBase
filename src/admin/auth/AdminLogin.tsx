@@ -76,8 +76,12 @@ export default function AdminLogin() {
           const routeMap: Record<string, string> = {
             police: "/admin/police",
             dss: "/admin/dss",
-            civildefence: "/admin/civil-defence",
+            civildefence: "/admin/civildefence",
             vigilante: "/admin/vigilante",
+            roadsafety: "/admin/roadsafety",
+            fireservice: "/admin/fireservice",
+            efcc: "/admin/efcc",
+            immigration: "/admin/immigration",
           };
 
           const targetRoute = routeMap[department.toLowerCase()] || "";
