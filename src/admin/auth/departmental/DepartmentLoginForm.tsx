@@ -82,6 +82,10 @@ export default function DepartmentLoginForm({
           <option value="dss">Dss</option>
           <option value="civildefence">Civil Defence</option>
           <option value="vigilante">Vigilante (See Watch)</option>{" "}
+          <option value="roadsafety">Road-Safety</option>
+          <option value="fireservice">Fire-Service</option>
+          <option value="immigration">Immigration</option>
+          <option value="efcc">Efcc</option>
           {/* New Squad Should Be Added Here */}
         </select>
       </div>
